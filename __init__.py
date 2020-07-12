@@ -1,17 +1,16 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, PointerProperty, CollectionProperty, BoolProperty
 import os
+from bpy.app.handlers import persistent
 
 bl_info = {
     "name" : "Scripts To Button",
     "author" : "RivinHD",
     "blender" : (2, 83, 0),
-    "version" : (1, 0, 0),
+    "version" : (1, 0, 1),
     "location" : "View3D",
     "category" : "Generic"
 }
-
-PanelInvoke = [True]
 
 def SaveText(ActiveText, ScriptName):
     #In real add-on: os.path.dirname(__file__) + "\Storage\mytxt.py"
@@ -100,14 +99,12 @@ class ButtonPanle(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        if PanelInvoke[0]:
-            layout.operator(LoadButtons.bl_idname)
         for i in range(len(context.scene.c_stb)):
             row = layout.row().split(factor = 0.9)
             btn = context.scene.c_stb[i]
             tbtn = context.scene.t_stb[i]
-            row.operator(ScriptButton.bl_idname, text = btn.name).btn_name = btn.name
-            row.operator(TrashButton.bl_idname, text = '', icon = 'TRASH').trash_name = tbtn.name
+            row.operator(ScriptButton.bl_idname, text= btn.name).btn_name = btn.name
+            row.operator(TrashButton.bl_idname, text= '', icon= 'TRASH').trash_name = tbtn.name
 
 classes.append(ButtonPanle)
 
@@ -126,25 +123,17 @@ class ScriptButton(bpy.types.Operator):
         return {"FINISHED"}
 classes.append(ScriptButton)
 
-class LoadButtons(bpy.types.Operator):
-    bl_idname = "stb.loadbuttons"
-    bl_label = "Load"
-    bl_options = {"REGISTER"}
-
-    def execute(self, context):
-        if PanelInvoke[0]: #initalize buttons for first start
-            PanelInvoke[0] = False
-            for script in GetAllSavedScripts():
-                new = context.scene.c_stb.add()
-                new.name = script
-                new.btn_name = script
-                new = context.scene.t_stb.add()
-                new.name = script
-                new.btn_name = script
-                GetText(script)
-            PanelInvoke[0] = False
-        return {"FINISHED"}
-classes.append(LoadButtons)
+@persistent
+def LoadSaves(dummy):
+    scene = bpy.context.scene
+    for script in GetAllSavedScripts():
+        new = scene.c_stb.add()
+        new.name = script
+        new.btn_name = script
+        new = scene.t_stb.add()
+        new.name = script
+        new.btn_name = script
+        GetText(script)
 
 class ButtonPropertys(bpy.types.PropertyGroup):
     btn_name = StringProperty()
@@ -177,6 +166,7 @@ def register():
     bpy.types.Scene.p_stb = PointerProperty(type = AddPropertys)
     bpy.types.Scene.c_stb = CollectionProperty(type = ButtonPropertys)
     bpy.types.Scene.t_stb = CollectionProperty(type = TrashPropertys)
+    bpy.app.handlers.load_factory_startup_post.append(LoadSaves)
 
 def unregister():
     for cls in classes:
@@ -184,3 +174,4 @@ def unregister():
     del bpy.types.Scene.p_stb
     del bpy.types.Scene.c_stb
     del bpy.types.Scene.t_stb
+    bpy.app.handlers.load_factory_startup_post.remove(LoadSaves)
