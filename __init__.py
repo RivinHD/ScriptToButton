@@ -4,7 +4,7 @@ import os
 from bpy.app.handlers import persistent
 
 bl_info = {
-    "name" : "Scripts To Button",
+    "name" : "Script To Button",
     "author" : "RivinHD",
     "blender" : (2, 83, 0),
     "version" : (1, 0, 3),
