@@ -7,7 +7,7 @@ bl_info = {
     "name" : "Scripts To Button",
     "author" : "RivinHD",
     "blender" : (2, 83, 0),
-    "version" : (1, 0, 2),
+    "version" : (1, 0, 3),
     "location" : "View3D",
     "category" : "Generic"
 }
@@ -21,7 +21,10 @@ def SaveText(ActiveText, ScriptName):
 
 def GetText(ScriptName):
     destination = os.path.dirname(__file__) + "/Storage/" + ScriptName + ".py"
-    bpy.data.texts.new(ScriptName)
+    if bpy.data.texts.find(ScriptName) == -1:
+        bpy.data.texts.new(ScriptName)
+    else:
+        bpy.data.texts[ScriptName].clear()
     with open(destination, 'r', encoding='utf8') as infile:
         bpy.data.texts[ScriptName].write(infile.read())
 
