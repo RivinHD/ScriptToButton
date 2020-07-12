@@ -26,8 +26,11 @@ def GetText(ScriptName):
         bpy.data.texts[ScriptName].write(infile.read())
 
 def GetAllSavedScripts():
+    path = os.path.dirname(__file__) + "/Storage"
+    if not os.path.exists(path):
+        os.mkdir(path)
     l = []
-    for file in os.listdir(os.path.dirname(__file__) + "/Storage"):
+    for file in os.listdir(path):
         l.append(file.replace(".py",""))
     return l
 
