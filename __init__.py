@@ -44,7 +44,7 @@ class AddButtonPanel(bpy.types.Panel):
     bl_label = "Add Button"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Scripts To Button"
+    bl_category = "Script To Button"
 
     def draw(self, context):
         stb = context.scene.p_stb
