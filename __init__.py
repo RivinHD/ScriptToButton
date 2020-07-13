@@ -93,7 +93,7 @@ def textlist(self, context):
 
 class AddPropertys(bpy.types.PropertyGroup):
     ButtonName : StringProperty(name = "Name", description = "Set the name of the Button", default = "")
-    TextsList : EnumProperty(name="Text", description = "Chose Text for converting into Bar", items = textlist)
+    TextsList : EnumProperty(name="Text", description = "Chose a Text for converting into a Button", items = textlist)
 classes.append(AddPropertys)
 
 class ButtonPanle(bpy.types.Panel):
@@ -101,7 +101,7 @@ class ButtonPanle(bpy.types.Panel):
     bl_label = "Buttons"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Scripts To Button"
+    bl_category = "Script To Button"
 
     def draw(self, context):
         layout = self.layout
