@@ -92,7 +92,7 @@ def textlist(self, context):
     return l
 
 class AddPropertys(bpy.types.PropertyGroup):
-    ButtonName : StringProperty(name = "Button Name", description = "Set the name of the Button", default = "")
+    ButtonName : StringProperty(name = "Name", description = "Set the name of the Button", default = "")
     TextsList : EnumProperty(name="Text", description = "Chose Text for converting into Bar", items = textlist)
 classes.append(AddPropertys)
 
