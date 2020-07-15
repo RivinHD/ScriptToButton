@@ -133,6 +133,8 @@ classes.append(ScriptButton)
 def LoadSaves(dummy):
     print('Load')
     scene = bpy.context.scene
+    scene.c_stb.clear()
+    scene.t_stb.clear()
     for script in GetAllSavedScripts():
         new = scene.c_stb.add()
         new.name = script
@@ -174,6 +176,8 @@ def register():
     bpy.types.Scene.c_stb = CollectionProperty(type = ButtonPropertys)
     bpy.types.Scene.t_stb = CollectionProperty(type = TrashPropertys)
     bpy.app.handlers.load_factory_startup_post.append(LoadSaves)
+    bpy.app.handlers.load_factory_preferences_post.append(LoadSaves)
+    bpy.app.handlers.load_post.append(LoadSaves)
 
 def unregister():
     for cls in classes:
@@ -182,3 +186,5 @@ def unregister():
     del bpy.types.Scene.c_stb
     del bpy.types.Scene.t_stb
     bpy.app.handlers.load_factory_startup_post.remove(LoadSaves)
+    bpy.app.handlers.load_factory_preferences_post.remove(LoadSaves)
+    bpy.app.handlers.load_post.remove(LoadSaves)
