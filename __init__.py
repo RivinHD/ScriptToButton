@@ -131,6 +131,7 @@ classes.append(ScriptButton)
 
 @persistent
 def LoadSaves(dummy):
+    print('Load')
     scene = bpy.context.scene
     for script in GetAllSavedScripts():
         new = scene.c_stb.add()
