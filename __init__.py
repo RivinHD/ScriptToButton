@@ -7,7 +7,7 @@ bl_info = {
     "name" : "Script To Button",
     "author" : "RivinHD",
     "blender" : (2, 83, 0),
-    "version" : (1, 0, 4),
+    "version" : (1, 0, 5),
     "location" : "View3D",
     "category" : "Generic"
 }
@@ -15,12 +15,12 @@ bl_info = {
 def SaveText(ActiveText, ScriptName):
     #In real add-on: os.path.dirname(__file__) + "\Storage\mytxt.py"
     text = ActiveText.as_string()
-    destination = os.path.dirname(__file__) + "/Storage/" + ScriptName + ".py"
+    destination = os.path.dirname(os.path.abspath(__file__)) + "/Storage/" + ScriptName + ".py"
     with open(destination, 'w', encoding='utf8') as outfile:
         outfile.write(text)
 
 def GetText(ScriptName):
-    destination = os.path.dirname(__file__) + "/Storage/" + ScriptName + ".py"
+    destination = os.path.dirname(os.path.abspath(__file__)) + "/Storage/" + ScriptName + ".py"
     if bpy.data.texts.find(ScriptName) == -1:
         bpy.data.texts.new(ScriptName)
     else:
@@ -29,7 +29,7 @@ def GetText(ScriptName):
         bpy.data.texts[ScriptName].write(infile.read())
 
 def GetAllSavedScripts():
-    path = os.path.dirname(__file__) + "/Storage"
+    path = os.path.dirname(os.path.abspath(__file__)) + "/Storage"
     if not os.path.exists(path):
         os.mkdir(path)
     l = []
