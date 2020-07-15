@@ -131,7 +131,7 @@ classes.append(ScriptButton)
 
 @persistent
 def LoadSaves(dummy):
-    print('Load')
+    print('---------------------Load--------------------')
     scene = bpy.context.scene
     scene.c_stb.clear()
     scene.t_stb.clear()
