@@ -175,7 +175,6 @@ def register():
     bpy.types.Scene.p_stb = PointerProperty(type = AddPropertys)
     bpy.types.Scene.c_stb = CollectionProperty(type = ButtonPropertys)
     bpy.types.Scene.t_stb = CollectionProperty(type = TrashPropertys)
-    bpy.app.handlers.load_factory_startup_post.append(LoadSaves)
     bpy.app.handlers.load_factory_preferences_post.append(LoadSaves)
     bpy.app.handlers.load_post.append(LoadSaves)
 
@@ -185,6 +184,5 @@ def unregister():
     del bpy.types.Scene.p_stb
     del bpy.types.Scene.c_stb
     del bpy.types.Scene.t_stb
-    bpy.app.handlers.load_factory_startup_post.remove(LoadSaves)
     bpy.app.handlers.load_factory_preferences_post.remove(LoadSaves)
     bpy.app.handlers.load_post.remove(LoadSaves)
