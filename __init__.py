@@ -7,7 +7,7 @@ bl_info = {
     "name" : "Script To Button",
     "author" : "RivinHD",
     "blender" : (2, 83, 0),
-    "version" : (1, 0, 6),
+    "version" : (1, 0, 7),
     "location" : "View3D",
     "category" : "Generic"
 }
