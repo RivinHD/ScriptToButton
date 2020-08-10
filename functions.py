@@ -146,7 +146,7 @@ def AddProp(btn, prop):
             if not valuetype is bool:
                 return False
         elif proptype == 'Enum':
-            if not((valuetype is list or valuetype is tuple) and isinstance(value[1], list) or isinstance(value[1], tuple)):
+            if not((valuetype is list or valuetype is tuple) and (isinstance(value[1], list) or isinstance(value[1], tuple)) and isinstance(value[0], str) and all(map(lambda x: isinstance(x, str), value[1]))):
                 return False
         elif proptype == 'IntVector':
             if not((valuetype is list or valuetype is tuple) and all(map(lambda x: isinstance(x, int), value)) and len(value) <= 32):
