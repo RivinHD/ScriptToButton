@@ -72,7 +72,7 @@ def ListToEnumitems(datalist):
 def GetAreas(text):
     lines = text.splitlines()
     if len(lines):
-        if lines[0].startswith("#STB-Area-"):
+        if lines[0].strip().startswith("#STB-Area-"):
             areas = lines[0].replace(" ", "").split("///")
             l = []
             for area in areas:
@@ -111,7 +111,7 @@ def GetProps(text):
     props = []
     for i in range(len(lines)):
         currentline = lines[i]
-        if currentline.startswith("#STB-Input-"):
+        if currentline.strip().startswith("#STB-Input-"):
             nextline = lines[i + 1]
             if not nextline.startswith("#"):
                 inputs = currentline.replace(" ", "").split("///")
@@ -362,7 +362,10 @@ def GetConsoleError():
     lasttb = sys.last_traceback
     if lasttb is None:
         return False
-    return 'Traceback (most recent call last):\n  File  "' + str(lasttb.tb_frame.f_locals['__file__']) +'", line ' + str(lasttb.tb_lineno) + ", in <module>\n" + str(sys.last_type.__name__) + ": " + str(sys.last_value)
+    error = ""
+    for tb in traceback.extract_tb(lasttb):
+        error += '   File  "' + str(tb.filename) +'", line ' + str(tb.lineno) + ", in " + tb.name +"\n"
+    return 'Traceback (most recent call last):\n'+ error + str(sys.last_type.__name__) + ": " + str(sys.last_value)
 
 def Export(mode, selections, p_stb, context, dir_filepath):
     if mode == "py":

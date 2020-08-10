@@ -9,10 +9,12 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
-    "blender": (2, 83, 0),
+    "blender": (2, 83, 3),
     "version": (1, 99, 0),
     "location": "View3D",
-    "category": "Generic"
+    "category": "System",
+    "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
+    "tracker_url": "https://github.com/RivinHD/ScriptToButton/issues"
 }
 
 classes = []
@@ -54,14 +56,27 @@ def panelfactory(spaceType):
 
         def draw(self, context):
             layout = self.layout
+            p_stb = context.preferences.addons[__name__].preferences
             col = layout.column()
-            col.operator(STB_OT_AddButton.bl_idname)
-            col.operator(STB_OT_Load.bl_idname)
-            col.operator(STB_OT_Reload.bl_idname)
-            col.operator(STB_OT_RemoveButton.bl_idname)
-            col.operator(STB_OT_Export.bl_idname)
-            col.operator(STB_OT_Import.bl_idname)
-            col.operator(SBT_OT_Rename.bl_idname)
+            row = col.row(align= True)
+            row.operator(STB_OT_AddButton.bl_idname, text= "Add", icon= 'ADD')
+            row.operator(STB_OT_RemoveButton.bl_idname, text= "Remove", icon= 'REMOVE')
+            if p_stb.Autosave:
+                row = col.row()
+                row.operator(STB_OT_Load.bl_idname, text= "Load")
+                row2 = row.row(align= True)
+                row2.operator(STB_OT_Reload.bl_idname, text= "", icon= 'FILE_REFRESH')
+                row2.operator(SBT_OT_Rename.bl_idname, text= "", icon= 'GREASEPENCIL')
+            else:
+                row = col.row(align= True)
+                row.operator(STB_OT_Load.bl_idname, text= "Load")
+                row.operator(STB_OT_Save.bl_idname, text= "Save")
+                row = col.row(align= True)
+                row.operator(STB_OT_Reload.bl_idname, text= "Reload", icon= 'FILE_REFRESH')
+                row.operator(SBT_OT_Rename.bl_idname, text= "Rename", icon= 'GREASEPENCIL')
+            row = col.row(align= True)
+            row.operator(STB_OT_Export.bl_idname, text= "Export", icon= 'EXPORT')
+            row.operator(STB_OT_Import.bl_idname, text= "Import", icon= 'IMPORT')
     STB_PT_Controls.__name__ = "STB_PT_Controls_%s" %spaceType
     classes.append(STB_PT_Controls) 
 
@@ -73,9 +88,9 @@ def panelfactory(spaceType):
         bl_category = "Script To Button"
 
         def draw(self, context):
+            p_stb = context.preferences.addons[__name__].preferences
             layout = self.layout
             for i in range(len(context.scene.b_stb)):
-                p_stb = context.preferences.addons[__name__].preferences
                 btn = context.scene.b_stb[i]
                 area = STB_PT_Buttons.bl_idname[15:]
                 for A in btn.Areas:
@@ -161,7 +176,7 @@ def SkipTextList(self, context):
 class STB_OT_AddButton(bpy.types.Operator):
     bl_idname = "stb.addbutton"
     bl_label = "Add Button"
-    bl_description = "button"
+    bl_description = 'Add a script as Button to the "Buttons" Panel'
     bl_options = {"REGISTER", "UNDO"}
 
     ShowSkip: BoolProperty(default= False, name= "Show Skip")
@@ -245,7 +260,7 @@ classes.append(STB_OT_ScriptButton)
 class STB_OT_RemoveButton(bpy.types.Operator):
     bl_idname = "stb.removebutton"
     bl_label = "Remove"
-    bl_description = "Delet the selected Button"
+    bl_description = "Delete the selected Button"
     bl_options = {"REGISTER", "UNDO"}
 
     deleteFile : BoolProperty(default= True, name= "Delete File", description= "Deletes the saved .py in the Storage")
@@ -279,7 +294,7 @@ class STB_OT_Load(bpy.types.Operator):
     bl_description = "Load all Buttons from File or Texteditor"
     bl_options = {"REGISTER", "UNDO"}
 
-    Mode: EnumProperty(name= "Load from ", items=[("file", "Load from File", ""), ("texteditor", "Load from Texteditor", "")], description= "Change the Mode which to load")
+    Mode: EnumProperty(name= "Load from ", items=[("file", "Load from Disk", ""), ("texteditor", "Load from Texteditor", "")], description= "Change the Mode which to load")
     All: BoolProperty(name= "Load all", default= False, description= "Load all Buttons from the Texteditor")
     Texts: CollectionProperty(type= TextsProperty, name= "Texts in Texteditor")
 
@@ -309,7 +324,7 @@ class STB_OT_Load(bpy.types.Operator):
             col = box.column()
             col.scale_y = 0.8
             col.label(text= "It will delete all your current Buttons", icon= "INFO")
-            col.label(text= "and replace it with the Buttons from the File", icon= "BLANK1")
+            col.label(text= "and replace it with the Buttons from the Disk", icon= "BLANK1")
         else:
             # Texteditor -------------------------------------
             box = layout.box()
@@ -329,28 +344,10 @@ class STB_OT_Load(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 classes.append(STB_OT_Load)
 
-class STB_OT_Options(bpy.types.Operator):
-    bl_idname = "stb.options"
-    bl_label = "Options"
-    bl_description = "Activates the Option Menu"
-    bl_options = {"INTERNAL"}
-
-    def execute(self, context):
-        return {"FINISHED"}
-
-    def draw(self, context):
-        layout = self.layout
-        p_stb = context.preferences.addons[__name__].preferences
-        layout.prop(p_stb, 'Autosave')
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-classes.append(STB_OT_Options)
-
 class STB_OT_Reload(bpy.types.Operator):
     bl_idname = "stb.reload"
     bl_label = "Reload"
-    bl_description = "Reload the linked Text in the Texteditor of the Button"
+    bl_description = "Reload the linked Text in the Texteditor of the selected Button"
     bl_options = {"REGISTER"}
 
     def execute(self, context):
@@ -372,7 +369,7 @@ classes.append(STB_OT_Reload)
 class STB_OT_Save(bpy.types.Operator):
     bl_idname = "stb.save"
     bl_label = "Save"
-    bl_description = "Save the all buttons to the Storage"
+    bl_description = "Save all buttons to the Storage"
 
     def execute(self, context):
         for btn in context.scene.b_stb:
@@ -482,7 +479,7 @@ classes.append(STB_OT_Import)
 class SBT_OT_Rename(bpy.types.Operator):
     bl_idname = "stb.rename"
     bl_label = "Rename"
-    bl_description = "REname the seleccted Button"
+    bl_description = "Rename the seleccted Button"
     bl_options = {"UNDO"}
 
     Name : StringProperty(name= "Name")
@@ -647,6 +644,10 @@ class STB_Properties(AddonPreferences):
     SelectedButton: EnumProperty(items=buttonlist, name="INTERNAL")
     SelectedEnum: IntProperty(name="INTERNAL")
     MultiButtonSelection : CollectionProperty(type= ButtonSelection)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, 'Autosave')
 classes.append(STB_Properties)
 
 # Registration ================================================================================================
