@@ -65,6 +65,7 @@ def panelfactory(spaceType):
                 row = col.row()
                 row.operator(STB_OT_Load.bl_idname, text= "Load")
                 row2 = row.row(align= True)
+                row2.scale_x = 1.2
                 row2.operator(STB_OT_Reload.bl_idname, text= "", icon= 'FILE_REFRESH')
                 row2.operator(SBT_OT_Rename.bl_idname, text= "", icon= 'GREASEPENCIL')
             else:
@@ -119,50 +120,58 @@ def panelfactory(spaceType):
                 btn = b_stb[p_stb['SelectedButton']]
                 col = layout.column(align= True)
                 for prop in btn.StringProps:
-                    col.prop(prop, 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(prop, 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.StringProps):
                     col = layout.column(align= True)
 
                 for prop in btn.IntProps:
-                    col.prop(prop, 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(prop, 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.IntProps):
                     col = layout.column(align= True)
 
                 for prop in btn.FloatProps:
-                    col.prop(prop, 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(prop, 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.FloatProps):
                     col = layout.column(align= True)
 
                 for prop in btn.BoolProps:
-                    col.prop(prop, 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(prop, 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.BoolProps):
                     col = layout.column(align= True)
 
                 for prop in btn.EnumProps:
-                    col.prop(prop, 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(prop, 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.EnumProps):
                     col = layout.column(align= True)
 
                 for prop in btn.IntVectorProps:
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.IntVectorProps):
                     col = layout.column(align= True)
 
                 for prop in btn.FloatVectorProps:
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        empty = False
                 if len(btn.FloatVectorProps):
                     col = layout.column(align= True)
 
                 for prop in btn.BoolVectorProps:
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
+                    if prop.space == 'Panel':
+                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        empty = False
 
                 if empty:
                     col.label(text= "No Properties")
@@ -255,6 +264,130 @@ class STB_OT_ScriptButton(bpy.types.Operator):
                 self.report({'ERROR'}, "The linked Script is not working\n\n%s" % error)
             return {'CANCELLED'}
         return {"FINISHED"}
+
+    def draw(self, context):
+        empty = True
+        propdrawn = False
+        layout = self.layout
+        b_stb = context.scene.b_stb
+        p_stb = context.preferences.addons[__name__].preferences
+        if len(b_stb):
+            btn = b_stb[p_stb['SelectedButton']]
+            col = layout.column(align= True)
+            for prop in btn.StringProps:
+                if prop.space == 'Dialog':
+                    col.prop(prop, 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.StringProps):
+                col = layout.column(align= True)
+
+            for prop in btn.IntProps:
+                if prop.space == 'Dialog':
+                    col.prop(prop, 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.IntProps):
+                col = layout.column(align= True)
+
+            for prop in btn.FloatProps:
+                if prop.space == 'Dialog':
+                    col.prop(prop, 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.FloatProps):
+                col = layout.column(align= True)
+
+            for prop in btn.BoolProps:
+                if prop.space == 'Dialog':
+                    col.prop(prop, 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.BoolProps):
+                col = layout.column(align= True)
+
+            for prop in btn.EnumProps:
+                if prop.space == 'Dialog':
+                    col.prop(prop, 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.EnumProps):
+                col = layout.column(align= True)
+
+            for prop in btn.IntVectorProps:
+                if prop.space == 'Dialog':
+                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.IntVectorProps):
+                col = layout.column(align= True)
+
+            for prop in btn.FloatVectorProps:
+                if prop.space == 'Dialog':
+                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    empty = False
+            if len(btn.FloatVectorProps):
+                col = layout.column(align= True)
+
+            for prop in btn.BoolVectorProps:
+                if prop.space == 'Dialog':
+                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    empty = False
+
+            if empty:
+                col.label(text= "No Properties")
+        
+    def invoke(self, context, event):
+        notempty = False
+        b_stb = context.scene.b_stb
+        p_stb = context.preferences.addons[__name__].preferences
+        if len(b_stb):
+            btn = b_stb[p_stb['SelectedButton']]
+            for prop in btn.StringProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.IntProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.FloatProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.BoolProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.EnumProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.IntVectorProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.FloatVectorProps:
+                if prop.space == 'Dialog':
+                    notempty = True
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for prop in btn.BoolVectorProps:
+                if prop.space == 'Dialog':
+                    empty = False
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            else:
+                return self.execute(context)
+
 classes.append(STB_OT_ScriptButton)
 
 class STB_OT_RemoveButton(bpy.types.Operator):

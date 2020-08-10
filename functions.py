@@ -324,7 +324,8 @@ def Delete_VectorProps(btn):
         exec("del bpy.context.scene['%s']" % name)
 
 def StringPropUpdate(self, context):
-    UpdateText(self.line, self.linename, '"%s"'% self.prop, eval("bpy.context.scene." + self.path_from_id().split(".")[0]))
+    txt = self.prop.replace('"', '\\"').replace("'", "\\'")
+    UpdateText(self.line, self.linename, '"%s"'% txt, eval("bpy.context.scene." + self.path_from_id().split(".")[0]))
 
 def IntPropUpdate(self, context):
     UpdateText(self.line, self.linename, self.prop, eval("bpy.context.scene." + self.path_from_id().split(".")[0]))
