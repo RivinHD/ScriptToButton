@@ -157,7 +157,9 @@ def AddProp(btn, prop):
         elif proptype == 'BoolVector':
             if not((valuetype is list or valuetype is tuple) and all(map(lambda x: isinstance(x, bool), value)) and len(value) <= 32):
                 return False
-
+        elif proptype == 'List':
+            if not(valuetype is list or valuetype is tuple):
+                return False
         coll = eval("btn." + proptype + "Props.add()") # Add element to the right Propcollection
     except:
         return False # Add to Failstack
@@ -178,8 +180,43 @@ def AddProp(btn, prop):
         except:
             coll.prop = value[1][0]
     elif proptype == 'IntVector' or proptype == 'FloatVector' or proptype == 'BoolVector':
-        coll.address = Creat_VectorProp(len(value), (btn.btn_name + "_"+ name).replace(" ", ""), proptype, "bpy.context.scene.b_stb['%s'].%sProps['%s']" % (btn.name, proptype, name))
+        coll.address = Creat_VectorProp(len(value), (btn.btn_name + "_"+ name + str(coll.line)).replace(" ", ""), proptype, "bpy.context.scene.b_stb['%s'].%sProps['%s']" % (btn.name, proptype, name), proptype)
         exec("%s.prop = value" %coll.address)
+    elif proptype == 'List':
+        coll.prop.clear()
+        for i in value:
+            prop = coll.prop.add()
+            itype = type(i)
+            if itype is list or itype is tuple:
+                if (itype is list or itype is tuple) and (isinstance(i[1], list) or isinstance(i[1], tuple)) and isinstance(i[0], str) and all(map(lambda x: isinstance(x, str), i[1])):
+                    prop.enumprop.items.clear() #Enum
+                    prop.ptype = 'enum'
+                    for v in i[1]:
+                        item = prop.enumprop.items.add()
+                        item.name = v
+                        item.item = v
+                    try:
+                        prop.enumprop.prop = i[0]
+                    except:
+                        prop.enumprop.prop = i[1][0]
+                elif (itype is list or itype is tuple) and all(map(lambda x: isinstance(x, bool), i)) and len(i) <= 32: #BoolVector
+                    prop.boolvectorprop = Creat_VectorProp(len(i), (btn.btn_name + "_"+ name + "_list_" + str(len(coll.prop))).replace(" ", ""), "BoolVector", "bpy.context.scene.b_stb['%s'].ListProps['%s']"% (btn.name, name), "List")
+                    prop.ptype = 'boolvector'
+                    exec("%s.prop = i" %prop.boolvectorprop)
+                elif (itype is list or itype is tuple) and all(map(lambda x: isinstance(x, int), i)) and len(i) <= 32: #IntVector
+                    prop.intvectorprop = Creat_VectorProp(len(i), (btn.btn_name + "_"+ name + "_list_" + str(len(coll.prop))).replace(" ", ""), "IntVector", "bpy.context.scene.b_stb['%s'].ListProps['%s']"% (btn.name, name), "List")
+                    prop.ptype = 'intvector'
+                    exec("%s.prop = i" %prop.intvectorprop)
+                elif (itype is list or itype is tuple) and all(map(lambda x: isinstance(x, float), i)) and len(i) <= 32: # FloatVector
+                    prop.floatvectorprop = Creat_VectorProp(len(i), (btn.btn_name + "_"+ name + "_list_" + str(len(coll.prop))).replace(" ", ""), "FloatVector", "bpy.context.scene.b_stb['%s'].ListProps['%s']"% (btn.name, name), "List")
+                    prop.ptype = 'floatvector'
+                    exec("%s.prop = i" %prop.floatvectorprop)
+                else:
+                    prop.strprop = str(i)
+                    prop.ptype = 'str'
+            else:
+                exec("prop." + str(itype.__name__)+ "prop = i")
+                prop.ptype = str(itype.__name__)
     else:
         coll.prop = value
 
@@ -213,6 +250,7 @@ def RemoveButton(p_stb, deleteFile, deleteText):
     if deleteText:
         bpy.data.texts.remove(bpy.data.texts[p_stb.SelectedButton])
     Delete_VectorProps(b_stb[p_stb.SelectedButton])
+    Delet_ListProp(b_stb[p_stb.SelectedButton])
     b_stb.remove(b_stb.find(p_stb.SelectedButton))
     if index - 1 >= 0:
         p_stb.SelctedButtonEnum[index - 1].selected = index >= len(p_stb.SelctedButtonEnum) - 1
@@ -256,7 +294,7 @@ def LoadFromTexteditor(opt, p_stb):
                 else:
                     LoadAddButton(p_stb, txt.txt_name)
     return btnFails
-Propdatatyp = ["String", "Int", "Float", "Bool", "Enum", "IntVector", "FloatVector", "BoolVector"]
+Propdatatyp = ["String", "Int", "Float", "Bool", "Enum", "IntVector", "FloatVector", "BoolVector", "List"]
 
 def LoadAddButton(p_stb, name):
     p_stb.ButtonName = name
@@ -265,6 +303,7 @@ def LoadAddButton(p_stb, name):
 
 def ReloadButtonText(btn,text):
     Delete_VectorProps(btn)
+    Delet_ListProp(btn)
     return Add_AreasANDProps(btn, text)
 
 def Add_AreasANDProps(btn, text):
@@ -296,9 +335,9 @@ def Add_AreasANDProps(btn, text):
             FailedProps.append(ele)
     return (FaildAreas, FailedProps)
 
-def Creat_VectorProp(vsize, name, vectortyp, backaddress):
+def Creat_VectorProp(vsize, name, vectortyp, backaddress, update):
     class VectorProp(PropertyGroup):
-        exec("prop : %sProperty(size= %d, update= %sPropUpdate)" % (vectortyp, vsize, vectortyp))
+        exec("prop : %sProperty(size= %d, update= %sPropUpdate)" % (vectortyp, vsize, update))
         address : StringProperty(default= backaddress)
     VectorProp.__name__ = "VectorProp_%s_%s" % (vectortyp, name)
     bpy.utils.register_class(VectorProp)
@@ -322,6 +361,22 @@ def Delete_VectorProps(btn):
         name = boolvec.address.split(".")[-1]
         exec("del bpy.types.Scene.%s" % name)
         exec("del bpy.context.scene['%s']" % name)
+
+def Delet_ListProp(btn):
+    for l in btn.ListProps:
+        for prop in l.prop:
+            if prop.ptype == 'intvector':
+                name = prop.intvectorprop.split(".")[-1]
+                exec("del bpy.types.Scene.%s" % name)
+                exec("del bpy.context.scene['%s']" % name)
+            elif prop.ptype == 'floatvector':
+                name = prop.floatvectorprop.split(".")[-1]
+                exec("del bpy.types.Scene.%s" % name)
+                exec("del bpy.context.scene['%s']" % name)
+            elif prop.ptype == 'boolvector':
+                name = prop.boolvectorprop.split(".")[-1]
+                exec("del bpy.types.Scene.%s" % name)
+                exec("del bpy.context.scene['%s']" % name)
 
 def StringPropUpdate(self, context):
     txt = self.prop.replace('"', '\\"').replace("'", "\\'")
@@ -351,6 +406,14 @@ def BoolVectorPropUpdate(self, context):
     Prop = eval(self.address)
     UpdateText(Prop.line, Prop.linename, [ele for ele in self.prop], eval("bpy.context.scene." + Prop.path_from_id().split(".")[0]))
 
+def ListPropUpdate(self, context):
+    split = self.path_from_id().split(".")
+    if len(split) > 1:
+        Prop = eval("bpy.context.scene."  + ".".join(split[:2]))
+    else:
+        Prop = eval(self.address)
+    UpdateText(Prop.line, Prop.linename, [TypeGetter(ele, ele.ptype) for ele in Prop.prop], eval("bpy.context.scene." + Prop.path_from_id().split(".")[0]))
+
 def UpdateText(linepos, varname, message, btn):
     if NotOneStart[0]:
         text = bpy.data.texts[btn.name]
@@ -358,6 +421,24 @@ def UpdateText(linepos, varname, message, btn):
         txt = text.as_string()
         text.clear()
         text.write(txt)
+
+def TypeGetter(value, vtype):
+    if vtype == 'str':
+        return value.strprop
+    elif vtype == 'int':
+        return value.intprop
+    elif vtype == 'float':
+        return value.floatprop
+    elif vtype == 'bool':
+        return value.boolprop
+    elif vtype == 'enum':
+        return [value.enumprop.prop, [item.item for item in value.enumprop.items]]
+    elif vtype == 'intvector':
+        return [i for i in eval(value.intvectorprop + "['prop']")]
+    elif vtype == 'floatvector':
+        return [i for i in eval(value.floatvectorprop + "['prop']")]
+    elif vtype == 'boolvector':
+        return [bool(i) for i in eval(value.boolvectorprop + "['prop']")]
 
 def GetConsoleError():
     lasttb = sys.last_traceback

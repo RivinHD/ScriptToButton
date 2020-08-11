@@ -121,58 +121,77 @@ def panelfactory(spaceType):
                 col = layout.column(align= True)
                 for prop in btn.StringProps:
                     if prop.space == 'Panel':
-                        col.prop(prop, 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(prop, 'prop', text= prop.pname)
                         empty = False
                 if len(btn.StringProps):
                     col = layout.column(align= True)
 
                 for prop in btn.IntProps:
                     if prop.space == 'Panel':
-                        col.prop(prop, 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(prop, 'prop', text= prop.pname)
                         empty = False
                 if len(btn.IntProps):
                     col = layout.column(align= True)
 
                 for prop in btn.FloatProps:
                     if prop.space == 'Panel':
-                        col.prop(prop, 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(prop, 'prop', text= prop.pname)
                         empty = False
                 if len(btn.FloatProps):
                     col = layout.column(align= True)
 
                 for prop in btn.BoolProps:
                     if prop.space == 'Panel':
-                        col.prop(prop, 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(prop, 'prop', text= prop.pname)
                         empty = False
                 if len(btn.BoolProps):
                     col = layout.column(align= True)
 
                 for prop in btn.EnumProps:
                     if prop.space == 'Panel':
-                        col.prop(prop, 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(prop, 'prop', text= prop.pname)
                         empty = False
                 if len(btn.EnumProps):
                     col = layout.column(align= True)
 
                 for prop in btn.IntVectorProps:
                     if prop.space == 'Panel':
-                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(eval(prop.address), 'prop', text= prop.pname)
                         empty = False
                 if len(btn.IntVectorProps):
                     col = layout.column(align= True)
 
                 for prop in btn.FloatVectorProps:
                     if prop.space == 'Panel':
-                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(eval(prop.address), 'prop', text= prop.pname)
                         empty = False
                 if len(btn.FloatVectorProps):
                     col = layout.column(align= True)
 
                 for prop in btn.BoolVectorProps:
                     if prop.space == 'Panel':
-                        col.prop(eval(prop.address), 'prop', text= prop.pname)
+                        box = col.box()
+                        box.prop(eval(prop.address), 'prop', text= prop.pname)
                         empty = False
 
+                for props in btn.ListProps:
+                    if props.space == 'Panel':
+                        box = col.box()
+                        box.label(text= props.pname)
+                        for prop in props.prop:
+                            if prop.ptype.endswith("vector"):
+                                box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
+                            elif prop.ptype == 'enum':
+                                box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
+                            else:
+                                box.prop(prop, prop.ptype + "prop", text= "")
                 if empty:
                     col.label(text= "No Properties")
     STB_PT_Properties.__name__ = "STB_PT_Properties_%s" %spaceType
@@ -276,58 +295,77 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             col = layout.column(align= True)
             for prop in btn.StringProps:
                 if prop.space == 'Dialog':
-                    col.prop(prop, 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(prop, 'prop', text= prop.pname)
                     empty = False
             if len(btn.StringProps):
                 col = layout.column(align= True)
 
             for prop in btn.IntProps:
                 if prop.space == 'Dialog':
-                    col.prop(prop, 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(prop, 'prop', text= prop.pname)
                     empty = False
             if len(btn.IntProps):
                 col = layout.column(align= True)
 
             for prop in btn.FloatProps:
                 if prop.space == 'Dialog':
-                    col.prop(prop, 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(prop, 'prop', text= prop.pname)
                     empty = False
             if len(btn.FloatProps):
                 col = layout.column(align= True)
 
             for prop in btn.BoolProps:
                 if prop.space == 'Dialog':
-                    col.prop(prop, 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(prop, 'prop', text= prop.pname)
                     empty = False
             if len(btn.BoolProps):
                 col = layout.column(align= True)
 
             for prop in btn.EnumProps:
                 if prop.space == 'Dialog':
-                    col.prop(prop, 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(prop, 'prop', text= prop.pname)
                     empty = False
             if len(btn.EnumProps):
                 col = layout.column(align= True)
 
             for prop in btn.IntVectorProps:
                 if prop.space == 'Dialog':
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(eval(prop.address), 'prop', text= prop.pname)
                     empty = False
             if len(btn.IntVectorProps):
                 col = layout.column(align= True)
 
             for prop in btn.FloatVectorProps:
                 if prop.space == 'Dialog':
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(eval(prop.address), 'prop', text= prop.pname)
                     empty = False
             if len(btn.FloatVectorProps):
                 col = layout.column(align= True)
 
             for prop in btn.BoolVectorProps:
                 if prop.space == 'Dialog':
-                    col.prop(eval(prop.address), 'prop', text= prop.pname)
+                    box = col.box()
+                    box.prop(eval(prop.address), 'prop', text= prop.pname)
                     empty = False
 
+            for props in btn.ListProps:
+                if props.space == 'Dialog':
+                    box = col.box()
+                    box.label(text= props.pname)
+                    for prop in props.prop:
+                        if prop.ptype.endswith("vector"):
+                            box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
+                        elif prop.ptype == 'enum':
+                            box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
+                        else:
+                            box.prop(prop, prop.ptype + "prop", text= "")
             if empty:
                 col.label(text= "No Properties")
         
@@ -381,6 +419,12 @@ class STB_OT_ScriptButton(bpy.types.Operator):
                 return context.window_manager.invoke_props_dialog(self)
             for prop in btn.BoolVectorProps:
                 if prop.space == 'Dialog':
+                    empty = False
+                    break
+            if notempty:
+                return context.window_manager.invoke_props_dialog(self)
+            for props in btn.ListProps:
+                if props.space == 'Dialog':
                     empty = False
                     break
             if notempty:
@@ -639,7 +683,6 @@ class PropString(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropString)
 
 class PropInt(PropertyGroup):
@@ -648,7 +691,6 @@ class PropInt(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropInt)
 
 class PropFloat(PropertyGroup):
@@ -657,7 +699,6 @@ class PropFloat(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropFloat)
 
 class PropBool(PropertyGroup):
@@ -666,7 +707,6 @@ class PropBool(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropBool)
 
 class EnumItem(PropertyGroup):
@@ -682,7 +722,6 @@ class PropEnum(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
     items : CollectionProperty(type= EnumItem)
 classes.append(PropEnum)
 
@@ -692,7 +731,6 @@ class PropIntVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropIntVector)
 
 class PropFloatVector(PropertyGroup):
@@ -701,7 +739,6 @@ class PropFloatVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropFloatVector)
 
 class PropBoolVector(PropertyGroup):
@@ -710,8 +747,32 @@ class PropBoolVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
-    position: IntProperty()
 classes.append(PropBoolVector)
+
+class EnumProp(PropertyGroup):
+    prop : EnumProperty(items= e_items, update= imfc.ListPropUpdate)
+    items : CollectionProperty(type= EnumItem)
+classes.append(EnumProp)
+
+class PropListProp(PropertyGroup):
+    strprop: StringProperty(update= imfc.ListPropUpdate)
+    intprop: IntProperty(update= imfc.ListPropUpdate)
+    floatprop: FloatProperty(update= imfc.ListPropUpdate)
+    boolprop: BoolProperty(update= imfc.ListPropUpdate)
+    enumprop: PointerProperty(type= EnumProp)
+    intvectorprop: StringProperty()
+    floatvectorprop: StringProperty()
+    boolvectorprop: StringProperty()
+    ptype: StringProperty()
+classes.append(PropListProp)
+
+class PropList(PropertyGroup):
+    prop: CollectionProperty(type= PropListProp)
+    space: StringProperty()
+    pname: StringProperty()
+    linename: StringProperty()
+    line: IntProperty()
+classes.append(PropList)
 
 class ButtonArea(PropertyGroup):
     area: StringProperty()
@@ -727,6 +788,7 @@ class ButtonPropertys(PropertyGroup):
     IntVectorProps: CollectionProperty(type=PropIntVector)
     FloatVectorProps: CollectionProperty(type=PropFloatVector)
     BoolVectorProps: CollectionProperty(type=PropBoolVector)
+    ListProps: CollectionProperty(type= PropList)
     Areas: CollectionProperty(type= ButtonArea)
 classes.append(ButtonPropertys)
 
