@@ -660,6 +660,7 @@ class STB_OT_Import(bpy.types.Operator, ImportHelper):
             self.report({'ERROR'}, mes)
         elif mesFail != "Not all Areas or Properties could be added because the Syntax is invailid:\n":
             self.report({'ERROR'}, mesFail)
+        bpy.context.area.tag_redraw()
         return {"FINISHED"}
 classes.append(STB_OT_Import)
 
