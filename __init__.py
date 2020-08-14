@@ -10,7 +10,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (2, 83, 3),
-    "version": (1, 99, 0),
+    "version": (2, 00, 0),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -368,6 +368,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
                 if props.space == 'Dialog':
                     box = col.box()
                     box.label(text= props.pname)
+                    empty = False
                     for prop in props.prop:
                         if prop.ptype.endswith("vector"):
                             box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
