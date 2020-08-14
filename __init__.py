@@ -185,6 +185,7 @@ def panelfactory(spaceType):
                     if props.space == 'Panel':
                         box = col.box()
                         box.label(text= props.pname)
+                        empty = False
                         for prop in props.prop:
                             if prop.ptype.endswith("vector"):
                                 box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
@@ -192,6 +193,14 @@ def panelfactory(spaceType):
                                 box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
                             else:
                                 box.prop(prop, prop.ptype + "prop", text= "")
+                if len(btn.ListProps):
+                    col = layout.column(align= True)
+
+                for props in btn.ObjectProps:
+                    if prop.space == 'Panel':
+                        box = col.box()
+                        box.prop_search(props, 'prop', bpy.data, "objects", text= prop.pname)
+                        empty = False
                 if empty:
                     col.label(text= "No Properties")
     STB_PT_Properties.__name__ = "STB_PT_Properties_%s" %spaceType
@@ -291,7 +300,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         b_stb = context.scene.b_stb
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
-            btn = b_stb[p_stb['SelectedButton']]
+            btn = b_stb[self.btn_name]
             col = layout.column(align= True)
             for prop in btn.StringProps:
                 if prop.space == 'Dialog':
@@ -374,7 +383,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         b_stb = context.scene.b_stb
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
-            btn = b_stb[p_stb['SelectedButton']]
+            btn = b_stb[self.btn_name]
             for prop in btn.StringProps:
                 if prop.space == 'Dialog':
                     notempty = True
@@ -419,13 +428,13 @@ class STB_OT_ScriptButton(bpy.types.Operator):
                 return context.window_manager.invoke_props_dialog(self)
             for prop in btn.BoolVectorProps:
                 if prop.space == 'Dialog':
-                    empty = False
+                    notempty = True
                     break
             if notempty:
                 return context.window_manager.invoke_props_dialog(self)
             for props in btn.ListProps:
                 if props.space == 'Dialog':
-                    empty = False
+                    notempty = True
                     break
             if notempty:
                 return context.window_manager.invoke_props_dialog(self)
@@ -774,6 +783,14 @@ class PropList(PropertyGroup):
     line: IntProperty()
 classes.append(PropList)
 
+class PropObject(PropertyGroup):
+    prop: StringProperty(update= imfc.ObjectPropUpdate)
+    space: StringProperty()
+    pname: StringProperty()
+    linename: StringProperty()
+    line: IntProperty()
+classes.append(PropObject)
+
 class ButtonArea(PropertyGroup):
     area: StringProperty()
 classes.append(ButtonArea)
@@ -789,6 +806,7 @@ class ButtonPropertys(PropertyGroup):
     FloatVectorProps: CollectionProperty(type=PropFloatVector)
     BoolVectorProps: CollectionProperty(type=PropBoolVector)
     ListProps: CollectionProperty(type= PropList)
+    ObjectProps: CollectionProperty(type= PropObject)
     Areas: CollectionProperty(type= ButtonArea)
 classes.append(ButtonPropertys)
 
@@ -825,7 +843,6 @@ def textlist(self, context):
     return l
 
 def buttonlist(self, context):
-    print(imfc.GetAllButtonnames())
     return imfc.ListToEnumitems(imfc.GetAllButtonnames())
 
 class STB_Properties(AddonPreferences):

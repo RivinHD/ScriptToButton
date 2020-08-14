@@ -160,6 +160,9 @@ def AddProp(btn, prop):
         elif proptype == 'List':
             if not(valuetype is list or valuetype is tuple):
                 return False
+        elif proptype == 'Object':
+            if not (valuetype is str or valuetype is bpy.types.Object):
+                return False
         coll = eval("btn." + proptype + "Props.add()") # Add element to the right Propcollection
     except:
         return False # Add to Failstack
@@ -217,6 +220,8 @@ def AddProp(btn, prop):
             else:
                 exec("prop." + str(itype.__name__)+ "prop = i")
                 prop.ptype = str(itype.__name__)
+    elif proptype == 'Object':
+        coll.prop = value.name
     else:
         coll.prop = value
 
@@ -294,7 +299,7 @@ def LoadFromTexteditor(opt, p_stb):
                 else:
                     LoadAddButton(p_stb, txt.txt_name)
     return btnFails
-Propdatatyp = ["String", "Int", "Float", "Bool", "Enum", "IntVector", "FloatVector", "BoolVector", "List"]
+Propdatatyp = ["String", "Int", "Float", "Bool", "Enum", "IntVector", "FloatVector", "BoolVector", "List", "Object"]
 
 def LoadAddButton(p_stb, name):
     p_stb.ButtonName = name
@@ -413,6 +418,9 @@ def ListPropUpdate(self, context):
     else:
         Prop = eval(self.address)
     UpdateText(Prop.line, Prop.linename, [TypeGetter(ele, ele.ptype) for ele in Prop.prop], eval("bpy.context.scene." + Prop.path_from_id().split(".")[0]))
+
+def ObjectPropUpdate(self, context):
+    UpdateText(self.line, self.linename, "bpy.data.objects['" +  self.prop + "']" if self.prop != '' else "''" , eval("bpy.context.scene." + self.path_from_id().split(".")[0]))
 
 def UpdateText(linepos, varname, message, btn):
     if NotOneStart[0]:
