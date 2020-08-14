@@ -1,16 +1,58 @@
 # ScriptToButton
 Script To Button gives you the possibility to convert your Blender scripts into a button.
 The add-on saves your scripts so that they can be used in any other Blender project.
-
+You can also define properties for your script that allow you to use user input in your script.
 
 # Installation
 1. Download the Add-on from GitHub as .zip file
-1. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
-2. Select the Add-on named "ScriptToBotton-master.zip" and import it as .zip file
-3. Enable the Add-on
-
+2. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
+3. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file
+4. Enable the Add-on
 
 # Usage
-- navigate to the Sidebar. You will see a new tab named "Script To Button", select this tab
-- "Add Button" Panel: Select a Text and write a Name for the Button. Then click on "Add Button" and a new Button is created.
-- "Buttons" Panel: Press the Button to execute/run your text or press the Trash-Button next to the Button to delete it.
+Go to the Sidebar. A tab named "Script To Button" is now available.
+> ## "Controls" Panel
+> Here are control buttons for the Add-on located.
+> > #### Add
+> > Add a new Button to the "Buttons" Panel.
+> > <br> When the button is pressed a popup will appear with options to name your button and to selected the script from Texteditor which will be linked to the Button.
+>
+> > #### Remove
+> > Remove the selected Button from the "Buttons" Panel.
+> > <br> When the button is pressed a popup will appear with the options to delete the button from file and also the linked script.
+>
+> > #### Load
+> > Give you the option to load all buttons from the Disk or from the Texteditor.
+> > When the button is pressed a popup will appear with a switch to decide where to load from.
+> > ##### Load from Disk
+> > A warning message is shown and when executed all buttons in Blender will be deleted and loaded from the disk.
+> > ##### Load from Texteditor
+> > All Texts are represented with a checkbox to decide which to load.
+> > <br> If the Button exist it will be reloaded otherwise a popup will appear with the option to add or skip this script.
+> 
+> > #### Save 
+> > (only available when Autostart is off)
+> > <br> Save all buttons to the disk.
+>
+> > #### Reload
+> > Reload the linked script of the selected button.
+> > <br> If Autosave is active the button is also saved on the disk.
+>
+> > #### Rename
+> > Give you the option to rename the selected button.
+> > When the button is pressed a popup appear with a text field to put in the new Name.
+>
+> > #### Export
+> > Opens an export window to export your buttons as .py files or one .zip file.
+> > <br> On the right side of the export window are the option to choose in which format you want export the scripts. Under this option, all buttons are listed with a checkbox to decide which ones to export.
+>
+> > #### Import
+> > Opens an import window to import .py files or .zip files .
+> > <br> You can select multiple .py and .zip files to import them all at once.
+
+> ## "Buttons" Panel
+> All your buttons are displayed here
+
+> ## "Properties" Panel
+> All registered properties of the selected button are displayed here
+
