@@ -82,7 +82,7 @@ def panelfactory(spaceType):
                 row.operator(STB_OT_Load.bl_idname, text= "Load")
                 row.operator(STB_OT_Save.bl_idname, text= "Save")
                 row = col.row(align= True)
-                row.operator(STB_OT_LoadSingelButton.bl_idname, text= "Load Singel", icon= 'TEXT')
+                row.operator(STB_OT_LoadSingelButton.bl_idname, text= "Load Button", icon= 'TEXT')
                 row = col.row(align= True)
                 row.operator(STB_OT_Reload.bl_idname, text= "Reload", icon= 'FILE_REFRESH')
                 row.operator(SBT_OT_Rename.bl_idname, text= "Rename", icon= 'GREASEPENCIL')
