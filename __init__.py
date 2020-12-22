@@ -241,7 +241,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
             btn = b_stb[p_stb['SelectedButton']]
-            sort, back = imfc.SortProps(btn, 'Panel')
+            sort, back = imfc.SortProps(btn, 'Dialog')
             if len(sort) > 0 or len(back) > 0:
                 imfc.drawSort(sort, back, layout)
             else :
@@ -253,7 +253,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
             btn = b_stb[self.btn_name]
-            sort, back = imfc.SortProps(btn, 'Panel')
+            sort, back = imfc.SortProps(btn, 'Dialog')
             if len(sort) > 0 or len(back) > 0:
                 return self.execute(context)
             else:
