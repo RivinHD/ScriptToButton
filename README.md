@@ -5,9 +5,9 @@ You can also define properties for your script that allow you to use user input 
 
 # Installation
 1. Download the Add-on from GitHub as .zip file
-2. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
-3. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file
-4. Enable the Add-on
+1. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
+2. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file
+3. Enable the Add-on
 
 # Usage
 Go to the Sidebar. A tab named "Script To Button" is now available.
@@ -34,6 +34,9 @@ Go to the Sidebar. A tab named "Script To Button" is now available.
 > > (only available when Autostart is off)
 > > <br> Save all buttons to the disk.
 >
+> > #### Load Button
+> > Loads the selected Button into the Texteditor.
+>
 > > #### Reload
 > > Reload the linked script of the selected button.
 > > <br> If Autosave is active the button is also saved on the disk.
@@ -55,4 +58,3 @@ Go to the Sidebar. A tab named "Script To Button" is now available.
 
 > ## "Properties" Panel
 > All registered properties of the selected button are displayed here
-
