@@ -7,6 +7,8 @@ import zipfile
 import threading
 from bpy.props import IntVectorProperty, FloatVectorProperty, BoolVectorProperty, PointerProperty, StringProperty
 from bpy.types import PropertyGroup
+import numpy as np
+import functools
 
 classes = []
 NotOneStart = [False]
@@ -53,6 +55,8 @@ def Load():
         GetText(script)
         btnFails[0].append(script)
         btnFails[1].append(Add_AreasANDProps(new, bpy.data.texts[script].as_string()))
+        if not p_stb.AutoLoad:
+            bpy.data.texts.remove(bpy.data.texts[script])
     if len(p_stb.SelctedButtonEnum):
         p_stb.SelctedButtonEnum[0].selected = True
     return btnFails
@@ -87,17 +91,17 @@ def GetAreas(text):
 def AreaParser(stbArea):
     AreaParsDict = {
         "3D_Viewport": "VIEW_3D",
-        "UV_Editor": "IMAGE_EDITOR",
-        "Image_Editor": "IMAGE_EDITOR",
-        "Compositor": "NODE_EDITOR",
-        "Texture_Node_Editor": "NODE_EDITOR",
-        "Shader_Editor": "NODE_EDITOR",
+        "UV_Editor": "UV",
+        "Image_Editor": "VIEW",
+        "Compositor": "CompositorNodeTree",
+        "Texture_Node_Editor": "TextureNodeTree",
+        "Shader_Editor": "ShaderNodeTree",
         "Video_Sequencer": "SEQUENCE_EDITOR",
         "Movie_Clip_Editor": "CLIP_EDITOR",
-        "Dope_Sheet": "DOPESHEET_EDITOR",
-        "Timeline": "DOPESHEET_EDITOR",
-        "Graph_Editor": "GRAPH_EDITOR",
-        "Drivers": "GRAPH_EDITOR",
+        "Dope_Sheet": "DOPESHEET",
+        "Timeline": "TIMELINE",
+        "Graph_Editor": "FCURVES",
+        "Drivers": "DRIVERS",
         "Nonlinear_Animation": "NLA_EDITOR",
         "Text_Editor": "TEXT_EDITOR"
     }
@@ -118,11 +122,13 @@ def GetProps(text):
                 linename = nextline.split("=")[0]
                 valuestring = nextline.split("=")[1].split("#")[0].replace(" ", "")
                 for inp in inputs:
+                    split = inp.split("-")
                     props.append({
                         "name": linename.strip(),
                         "linename": linename,
-                        "space": inp.split("-")[2],
-                        "type": inp.split("-")[3],
+                        "space": split[2],
+                        "type": split[3],
+                        "sort": split[4] if len(split) > 4 else "",
                         "line": i + 1,
                         "value": valuestring
                     })
@@ -172,6 +178,7 @@ def AddProp(btn, prop):
     coll.linename = prop["linename"]
     coll.space = prop["space"]
     coll.line = prop["line"]
+    coll.sort = prop["sort"]
     if proptype == 'Enum':
         coll.items.clear()
         for v in value[1]:
@@ -218,8 +225,13 @@ def AddProp(btn, prop):
                     prop.strprop = str(i)
                     prop.ptype = 'str'
             else:
-                exec("prop." + str(itype.__name__)+ "prop = i")
-                prop.ptype = str(itype.__name__)
+                types = ['str', 'int', 'float', 'bool']
+                if itype.__name__ in types:
+                    exec("prop." + str(itype.__name__)+ "prop = i")
+                    prop.ptype = str(itype.__name__)
+                else:
+                    prop.strprop = str(i)
+                    prop.ptype = 'str'
     elif proptype == 'Object':
         coll.prop = value.name
     else:
@@ -230,13 +242,15 @@ def AddButton(p_stb, name, textname):
     text = texts[textname].as_string() # Get selected Text
     if p_stb.Autosave:
         SaveText(texts[textname], name)
-        GetText(name) # do same as lower, but with File
+        if p_stb.AutoLoad:
+            GetText(name) # do same as lower, but with File
     else:
-        if texts.find(textname) == -1: # Creat new text if not exist
-            texts.new(textname)
-        else:
-            texts[textname].clear()
-        texts[textname].write(text) # Write to Text
+        if p_stb.AutoLoad:
+            if texts.find(textname) == -1: # Creat new text if not exist
+                texts.new(textname)
+            else:
+                texts[textname].clear()
+            texts[textname].write(text) # Write to Text
     index = bpy.context.scene.b_stb.find(name)
     if index != -1:
         bpy.context.scene.b_stb.remove(index)   
@@ -253,7 +267,8 @@ def RemoveButton(p_stb, deleteFile, deleteText):
     if deleteFile:
         os.remove(os.path.dirname(__file__) + "/Storage/" + p_stb.SelectedButton + ".py")
     if deleteText:
-        bpy.data.texts.remove(bpy.data.texts[p_stb.SelectedButton])
+        if bpy.data.texts.find(p_stb.SelectedButton) != -1:
+            bpy.data.texts.remove(bpy.data.texts[p_stb.SelectedButton])
     Delete_VectorProps(b_stb[p_stb.SelectedButton])
     Delet_ListProp(b_stb[p_stb.SelectedButton])
     b_stb.remove(b_stb.find(p_stb.SelectedButton))
@@ -356,32 +371,38 @@ def unregister_vector():
 def Delete_VectorProps(btn):
     for intvec in btn.IntVectorProps:
         name = intvec.address.split(".")[-1]
-        exec("del bpy.types.Scene.%s" % name)
-        exec("del bpy.context.scene['%s']" % name)
+        if hasattr(bpy.types.Scene, name):
+            exec("del bpy.types.Scene.%s" % name)
+            exec("del bpy.context.scene['%s']" % name)
     for floatvec in btn.FloatVectorProps:
         name = floatvec.address.split(".")[-1]
-        exec("del bpy.types.Scene.%s" % name)
-        exec("del bpy.context.scene['%s']" % name)
+        if hasattr(bpy.types.Scene, name):
+            exec("del bpy.types.Scene.%s" % name)
+            exec("del bpy.context.scene['%s']" % name)
     for boolvec in btn.BoolVectorProps:
         name = boolvec.address.split(".")[-1]
-        exec("del bpy.types.Scene.%s" % name)
-        exec("del bpy.context.scene['%s']" % name)
+        if hasattr(bpy.types.Scene, name):
+            exec("del bpy.types.Scene.%s" % name)
+            exec("del bpy.context.scene['%s']" % name)
 
 def Delet_ListProp(btn):
     for l in btn.ListProps:
         for prop in l.prop:
             if prop.ptype == 'intvector':
                 name = prop.intvectorprop.split(".")[-1]
-                exec("del bpy.types.Scene.%s" % name)
-                exec("del bpy.context.scene['%s']" % name)
+                if hasattr(bpy.types.Scene, name):
+                    exec("del bpy.types.Scene.%s" % name)
+                    exec("del bpy.context.scene['%s']" % name)
             elif prop.ptype == 'floatvector':
                 name = prop.floatvectorprop.split(".")[-1]
-                exec("del bpy.types.Scene.%s" % name)
-                exec("del bpy.context.scene['%s']" % name)
+                if hasattr(bpy.types.Scene, name):
+                    exec("del bpy.types.Scene.%s" % name)
+                    exec("del bpy.context.scene['%s']" % name)
             elif prop.ptype == 'boolvector':
                 name = prop.boolvectorprop.split(".")[-1]
-                exec("del bpy.types.Scene.%s" % name)
-                exec("del bpy.context.scene['%s']" % name)
+                if hasattr(bpy.types.Scene, name):
+                    exec("del bpy.types.Scene.%s" % name)
+                    exec("del bpy.context.scene['%s']" % name)
 
 def StringPropUpdate(self, context):
     txt = self.prop.replace('"', '\\"').replace("'", "\\'")
@@ -423,7 +444,8 @@ def ObjectPropUpdate(self, context):
     UpdateText(self.line, self.linename, "bpy.data.objects['" +  self.prop + "']" if self.prop != '' else "''" , eval("bpy.context.scene." + self.path_from_id().split(".")[0]))
 
 def UpdateText(linepos, varname, message, btn):
-    if NotOneStart[0]:
+    p_stb = bpy.context.preferences.addons[__package__].preferences
+    if NotOneStart[0] and bpy.data.texts.find(btn.name) != -1:
         text = bpy.data.texts[btn.name]
         text.lines[linepos].body = varname + "= " + str(message)
         txt = text.as_string()
@@ -506,6 +528,8 @@ def ImportButton(filepath, context, p_stb, txt):
     item.Index = len(p_stb.SelctedButtonEnum) - 1
     if p_stb.Autosave:
         SaveText(bpy.data.texts[name], name)
+    if not p_stb.AutoLoad:
+        bpy.data.texts.remove(bpy.data.texts[script])
     Fails = Add_AreasANDProps(btn, txt)
     return ([name],Fails)
 
@@ -516,12 +540,181 @@ def CheckForDublicates(l, name, num = 1): #Check for name dublicates and appen .
 
 def Rename(p_stb, name):
     btn = bpy.context.scene.b_stb[p_stb.SelectedButton]
+    if bpy.data.texts.find(p_stb.SelectedButton) == -1:
+        GetText(p_stb.SelectedButton)
     text = bpy.data.texts[p_stb.SelectedButton]
-    os.remove(os.path.dirname(os.path.abspath(__file__)) + "/Storage/" + btn.btn_name + ".py")
+    oldpath = os.path.dirname(os.path.abspath(__file__)) + "/Storage/" + btn.btn_name + ".py"
     if name != btn.btn_name:
         name = CheckForDublicates(GetAllButtonnames(), name)
     btn.name = name
     btn.btn_name = name
     text.name = name
-    if p_stb.Autosave:
-        SaveText(text, name)
+    os.rename(oldpath, os.path.dirname(os.path.abspath(__file__)) + "/Storage/" + name + ".py")
+    if not p_stb.AutoLoad:
+        bpy.data.texts.remove(text)
+
+def UpdateAllProps(btn):
+    for prop in btn.StringProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+    for prop in btn.IntProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+    for prop in btn.FloatProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+    for prop in btn.BoolProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+    for prop in btn.EnumProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+    for prop in btn.IntVectorProps:
+        prop = eval(prop.address)
+        exec(prop.address + ".prop = prop.prop")
+    for prop in btn.FloatVectorProps:
+        prop = eval(prop.address)
+        exec(prop.address + ".prop = prop.prop")
+    for prop in btn.BoolVectorProps:
+        prop = eval(prop.address)
+        exec(prop.address + ".prop = prop.prop")
+    for prop in btn.ListProps:
+        if len(prop.prop) > 0:
+            sub = prop.prop[0]
+            subprop = eval("sub." + sub.ptype + "prop")
+            if sub.ptype in ['str', 'int', 'float', 'bool']:
+                exec("bpy.context.scene." + prop.path_from_id()+ ".prop[0]." + sub.ptype + "prop = subprop")
+            elif sub.ptype == 'enum':
+                exec("bpy.context.scene." + prop.path_from_id() + ".prop[0]." + sub.ptype + "prop = subprop.prop")
+            else:
+                exec("bpy.context.scene." + prop.path_from_id() + ".prop[0]." + sub.ptype + "prop['prop'] = subprop['prop']")
+    for prop in btn.ObjectProps:
+        exec("bpy.context.scene." + prop.path_from_id() + ".prop = prop.prop")
+
+def SortProps(btn, space):
+    l = []
+    for prop in btn.StringProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawProp, prop=prop)])
+    for prop in btn.IntProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawProp, prop=prop)])
+    for prop in btn.FloatProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawProp, prop=prop)])
+    for prop in btn.BoolProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawProp, prop=prop)])
+    for prop in btn.EnumProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawProp, prop=prop)])
+    for prop in btn.IntVectorProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawVectorProp, prop=prop)])
+    for prop in btn.FloatVectorProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawVectorProp, prop=prop)])
+    for prop in btn.BoolVectorProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawVectorProp, prop=prop)])
+    for prop in btn.ListProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawListProp, props=prop)])
+    for prop in btn.ObjectProps:
+        if prop.space == space:
+            l.append(parseSort(prop.sort) + [functools.partial(drawPropSearch, prop=prop, context=bpy.data, contextprop="objects")])
+    l.sort()
+    back = []
+    sort = []
+    for ele in l:
+        if ele[0] == -1:
+            back.append(ele)
+        else:
+            sort.append(ele)
+    return (sort, back)
+
+def drawSort(sort, back, layout):
+    lastIndex = 0
+    lastRow = [-1, None, 0, 0]
+    for ele in sort:
+        skipSpace(ele[0] - lastIndex, layout)
+        lastIndex = ele[0]
+        if ele[0] == lastRow[0]:
+            layout = lastRow[1]
+            newRow = False
+        else:
+            if lastRow[2] > 0:
+                skipSpace(1, lastRow[1], lastRow[2])
+            newRow = True
+        row, skipBack, lastSpace = drawRow(ele[1], ele[-1], layout, lastRow[3], newRow)
+        lastRow = [ele[0], row, skipBack, lastSpace]
+    else:
+        if lastRow[2] > 0:
+            skipSpace(1, lastRow[1], lastRow[2])
+    for ele in back:
+        ele[-1](layout= layout)
+
+def drawRow(eleParse, eleDraw, row, lastSpace, newRow):
+    if newRow:
+        row = row.row()
+        space = eleParse[0]
+    else:
+        space = eleParse[0] - lastSpace
+    lastSpace = 0
+    if space > 0:
+        skipSpace(1, row, space)
+        lastSpace = 1
+    eleDraw(layout=row)
+    if len(eleParse) > 1:
+        back = eleParse[1]
+    else:
+        back = 0
+    return (row, back, lastSpace)
+        
+def skipSpace(skips, layout, scale = 1):
+    for i in range(skips):
+        col = layout.column()
+        col.scale_x = scale
+        col.label(text= "")
+
+def parseSort(sort):
+    if sort.startswith("[") and sort.endswith("]") and (n.digit() or n == "/" or n == ',' for n in sort[1:-1]):
+        sort = sort[1:-1].split(",")
+        if len(sort) > 2 or len(sort) < 1:
+            return [-1, [-1]]
+        col = int(sort[0])
+        if col < 0:
+            col = -1
+        if len(sort) > 1:
+            split = sort[1].split("/")
+            if len(split) > 2:
+                split = split[:2]
+            elif len(split) < 1:
+                split.append('0')
+            if "" in split:
+                rows = [-1]
+            else:
+                rows = [float(i) for i in split]
+                for row in rows:
+                    if row < 0:
+                        row = 0
+        else:
+            rows = [-1]
+        return [col, rows]
+    else:
+        return [-1, [-1]]
+
+def drawProp(layout, prop):
+    layout.prop(prop, 'prop', text= prop.pname)
+
+def drawVectorProp(layout, prop):
+    layout.prop(eval(prop.address), 'prop', text= prop.pname)
+
+def drawListProp(layout, props):
+    box = layout.box()
+    box.label(text= props.pname)
+    for prop in props.prop:
+        if prop.ptype.endswith("vector"):
+            box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
+        elif prop.ptype == 'enum':
+            box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
+        else:
+            box.prop(prop, prop.ptype + "prop", text= "")
+
+def drawPropSearch(layout, prop, context, contextprop):
+    layout.prop_search(prop, 'prop', context, contextprop, text= prop.pname)

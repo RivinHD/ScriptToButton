@@ -5,12 +5,13 @@ import os
 from bpy.app.handlers import persistent
 from . import functions as imfc
 from bpy_extras.io_utils import ImportHelper, ExportHelper
+from . import update
 
 bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
-    "blender": (2, 83, 3),
-    "version": (2, 00, 0),
+    "blender": (2, 83, 9),
+    "version": (2, 1, 0),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -25,9 +26,11 @@ SpaceTypes = ["VIEW_3D","IMAGE_EDITOR","NODE_EDITOR","SEQUENCE_EDITOR","CLIP_EDI
 def LoadSaves(dummy = None):
     try:
         bpy.app.timers.unregister(LoadSaves)
+    except:
+        pass
+    try:
         bpy.app.handlers.depsgraph_update_pre.remove(LoadSaves)
     except:
-        print("Already Loaded")
         return
     print("------------------Load-----------------")
     btnFails = imfc.Load()
@@ -56,6 +59,11 @@ def panelfactory(spaceType):
 
         def draw(self, context):
             layout = self.layout
+            STB = context.preferences.addons[__name__].preferences
+            if STB.AutoUpdate and STB.Update:
+                box = layout.box()
+                box.label(text= "A new Version is available (" + STB.Version + ")")
+                box.operator(update.ANE_OT_Update.bl_idname, text= "Update")
             p_stb = context.preferences.addons[__name__].preferences
             col = layout.column()
             row = col.row(align= True)
@@ -66,12 +74,15 @@ def panelfactory(spaceType):
                 row.operator(STB_OT_Load.bl_idname, text= "Load")
                 row2 = row.row(align= True)
                 row2.scale_x = 1.2
+                row2.operator(STB_OT_LoadSingelButton.bl_idname, text="", icon= 'TEXT')
                 row2.operator(STB_OT_Reload.bl_idname, text= "", icon= 'FILE_REFRESH')
                 row2.operator(SBT_OT_Rename.bl_idname, text= "", icon= 'GREASEPENCIL')
             else:
                 row = col.row(align= True)
                 row.operator(STB_OT_Load.bl_idname, text= "Load")
                 row.operator(STB_OT_Save.bl_idname, text= "Save")
+                row = col.row(align= True)
+                row.operator(STB_OT_LoadSingelButton.bl_idname, text= "Load Singel", icon= 'TEXT')
                 row = col.row(align= True)
                 row.operator(STB_OT_Reload.bl_idname, text= "Reload", icon= 'FILE_REFRESH')
                 row.operator(SBT_OT_Rename.bl_idname, text= "Rename", icon= 'GREASEPENCIL')
@@ -93,7 +104,7 @@ def panelfactory(spaceType):
             layout = self.layout
             for i in range(len(context.scene.b_stb)):
                 btn = context.scene.b_stb[i]
-                area = STB_PT_Buttons.bl_idname[15:]
+                area = bpy.context.area.ui_type
                 for A in btn.Areas:
                     if area == A.area:
                         row = layout.row(align= True)
@@ -118,95 +129,15 @@ def panelfactory(spaceType):
             p_stb = context.preferences.addons[__name__].preferences
             if len(b_stb):
                 btn = b_stb[p_stb['SelectedButton']]
-                col = layout.column(align= True)
-                for prop in btn.StringProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(prop, 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.StringProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.IntProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(prop, 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.IntProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.FloatProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(prop, 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.FloatProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.BoolProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(prop, 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.BoolProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.EnumProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(prop, 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.EnumProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.IntVectorProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(eval(prop.address), 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.IntVectorProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.FloatVectorProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(eval(prop.address), 'prop', text= prop.pname)
-                        empty = False
-                if len(btn.FloatVectorProps):
-                    col = layout.column(align= True)
-
-                for prop in btn.BoolVectorProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop(eval(prop.address), 'prop', text= prop.pname)
-                        empty = False
-
-                for props in btn.ListProps:
-                    if props.space == 'Panel':
-                        box = col.box()
-                        box.label(text= props.pname)
-                        empty = False
-                        for prop in props.prop:
-                            if prop.ptype.endswith("vector"):
-                                box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
-                            elif prop.ptype == 'enum':
-                                box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
-                            else:
-                                box.prop(prop, prop.ptype + "prop", text= "")
-                if len(btn.ListProps):
-                    col = layout.column(align= True)
-
-                for props in btn.ObjectProps:
-                    if prop.space == 'Panel':
-                        box = col.box()
-                        box.prop_search(props, 'prop', bpy.data, "objects", text= prop.pname)
-                        empty = False
-                if empty:
-                    col.label(text= "No Properties")
+                sort, back = imfc.SortProps(btn, 'Panel')
+                if len(sort) > 0 or len(back) > 0:
+                    imfc.drawSort(sort, back, layout)
+                else :
+                    layout.label(text= "No Properties")
     STB_PT_Properties.__name__ = "STB_PT_Properties_%s" %spaceType
     classes.append(STB_PT_Properties)
 
-# Operators -----------------------------------------------------
+#region Operators
 def SkipTextList(self, context):
     return [(self.Text, self.Text, "")]
 
@@ -281,12 +212,21 @@ class STB_OT_ScriptButton(bpy.types.Operator):
     btn_name: StringProperty()
 
     def execute(self, context):
+        p_stb = context.preferences.addons[__name__].preferences
+        b_stb = context.scene.b_stb
+        if bpy.data.texts.find(self.btn_name) == -1:
+            imfc.GetText(self.btn_name)
+            imfc.UpdateAllProps(b_stb[self.btn_name])
         text = bpy.data.texts[self.btn_name]
         ctx = bpy.context.copy()
         ctx['edit_text'] = text
         try:
             bpy.ops.text.run_script(ctx)
+            if p_stb.DelteScriptAfterRun:
+                bpy.data.texts.remove(text)
         except:
+            if p_stb.DelteScriptAfterRun:
+                bpy.data.texts.remove(text)
             error = imfc.GetConsoleError()
             if error:
                 self.report({'ERROR'}, "The linked Script is not working\n\n%s" % error)
@@ -300,84 +240,12 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         b_stb = context.scene.b_stb
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
-            btn = b_stb[self.btn_name]
-            col = layout.column(align= True)
-            for prop in btn.StringProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(prop, 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.StringProps):
-                col = layout.column(align= True)
-
-            for prop in btn.IntProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(prop, 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.IntProps):
-                col = layout.column(align= True)
-
-            for prop in btn.FloatProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(prop, 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.FloatProps):
-                col = layout.column(align= True)
-
-            for prop in btn.BoolProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(prop, 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.BoolProps):
-                col = layout.column(align= True)
-
-            for prop in btn.EnumProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(prop, 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.EnumProps):
-                col = layout.column(align= True)
-
-            for prop in btn.IntVectorProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.IntVectorProps):
-                col = layout.column(align= True)
-
-            for prop in btn.FloatVectorProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
-            if len(btn.FloatVectorProps):
-                col = layout.column(align= True)
-
-            for prop in btn.BoolVectorProps:
-                if prop.space == 'Dialog':
-                    box = col.box()
-                    box.prop(eval(prop.address), 'prop', text= prop.pname)
-                    empty = False
-
-            for props in btn.ListProps:
-                if props.space == 'Dialog':
-                    box = col.box()
-                    box.label(text= props.pname)
-                    empty = False
-                    for prop in props.prop:
-                        if prop.ptype.endswith("vector"):
-                            box.prop(eval(eval("prop." + prop.ptype + "prop")), 'prop', text= "")
-                        elif prop.ptype == 'enum':
-                            box.prop(eval("prop." + prop.ptype + "prop"), 'prop', text= "")
-                        else:
-                            box.prop(prop, prop.ptype + "prop", text= "")
-            if empty:
-                col.label(text= "No Properties")
+            btn = b_stb[p_stb['SelectedButton']]
+            sort, back = imfc.SortProps(btn, 'Panel')
+            if len(sort) > 0 or len(back) > 0:
+                imfc.drawSort(sort, back, layout)
+            else :
+                layout.label(text= "No Properties")
         
     def invoke(self, context, event):
         notempty = False
@@ -385,63 +253,11 @@ class STB_OT_ScriptButton(bpy.types.Operator):
         p_stb = context.preferences.addons[__name__].preferences
         if len(b_stb):
             btn = b_stb[self.btn_name]
-            for prop in btn.StringProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.IntProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.FloatProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.BoolProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.EnumProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.IntVectorProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.FloatVectorProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for prop in btn.BoolVectorProps:
-                if prop.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            for props in btn.ListProps:
-                if props.space == 'Dialog':
-                    notempty = True
-                    break
-            if notempty:
-                return context.window_manager.invoke_props_dialog(self)
-            else:
+            sort, back = imfc.SortProps(btn, 'Panel')
+            if len(sort) > 0 or len(back) > 0:
                 return self.execute(context)
-
+            else:
+                return {'CANCELLED'}
 classes.append(STB_OT_ScriptButton)
 
 class STB_OT_RemoveButton(bpy.types.Operator):
@@ -461,14 +277,18 @@ class STB_OT_RemoveButton(bpy.types.Operator):
         return {"FINISHED"}
 
     def draw(self, context):
+        p_stb = context.preferences.addons[__name__].preferences
         layout = self.layout
         layout.prop(self, 'deleteFile', text= "Delete File")
-        layout.prop(self, 'deleteText', text= "Delete Text")
+        row = layout.row()
+        textenabled = bpy.data.texts.find(p_stb.SelectedButton) != -1
+        row.enabled = textenabled
+        self.deleteText = textenabled
+        row.prop(self, 'deleteText', text= "Delete Text", toggle= False)
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
 classes.append(STB_OT_RemoveButton)
-
 
 class TextsProperty(PropertyGroup):
     txt_name: StringProperty()
@@ -559,8 +379,17 @@ class STB_OT_Save(bpy.types.Operator):
     bl_description = "Save all buttons to the Storage"
 
     def execute(self, context):
+        Fails = []
         for btn in context.scene.b_stb:
-            imfc.Save(bpy.data.texts[btn.name], btn.btn_name)
+            if bpy.data.texts.find(btn.name) != -1:
+                imfc.Save(bpy.data.texts[btn.name], btn.btn_name)
+            else:
+                Fails.append(btn.name)
+        if len(Fails) > 0:
+            errtext = "Not all Scrpits could be saved:"
+            for fail in Fails:
+                errtext += "\n" + fail + " could not be saved, linked Text is missing"
+            self.report({'ERROR'}, errtext)
         return {"FINISHED"}
 classes.append(STB_OT_Save)
 
@@ -687,13 +516,29 @@ class SBT_OT_Rename(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 classes.append(SBT_OT_Rename)
 
-# PropertyGroup ----------------------------------------------
+class STB_OT_LoadSingelButton(bpy.types.Operator):
+    bl_idname = "stb.loadsingelbutton"
+    bl_label = "Load Button"
+    bl_description = "Load the script of the selected Button into the Texteditor"
+
+    def execute(self, context):
+        p_stb = context.preferences.addons[__name__].preferences
+        b_stb = context.scene.b_stb
+        imfc.GetText(p_stb.SelectedButton)
+        imfc.UpdateAllProps(b_stb[p_stb.SelectedButton])
+        return {"FINISHED"}
+classes.append(STB_OT_LoadSingelButton)
+
+#endregion
+
+#region PropertyGroups
 class PropString(PropertyGroup):
     prop: StringProperty(update= imfc.StringPropUpdate)
     space: StringProperty()
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropString)
 
 class PropInt(PropertyGroup):
@@ -702,6 +547,7 @@ class PropInt(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropInt)
 
 class PropFloat(PropertyGroup):
@@ -710,6 +556,7 @@ class PropFloat(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropFloat)
 
 class PropBool(PropertyGroup):
@@ -718,6 +565,7 @@ class PropBool(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropBool)
 
 class EnumItem(PropertyGroup):
@@ -734,6 +582,7 @@ class PropEnum(PropertyGroup):
     linename: StringProperty()
     line: IntProperty()
     items : CollectionProperty(type= EnumItem)
+    sort: StringProperty()
 classes.append(PropEnum)
 
 class PropIntVector(PropertyGroup):
@@ -742,6 +591,7 @@ class PropIntVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropIntVector)
 
 class PropFloatVector(PropertyGroup):
@@ -750,6 +600,7 @@ class PropFloatVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropFloatVector)
 
 class PropBoolVector(PropertyGroup):
@@ -758,6 +609,7 @@ class PropBoolVector(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropBoolVector)
 
 class EnumProp(PropertyGroup):
@@ -783,6 +635,7 @@ class PropList(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropList)
 
 class PropObject(PropertyGroup):
@@ -791,6 +644,7 @@ class PropObject(PropertyGroup):
     pname: StringProperty()
     linename: StringProperty()
     line: IntProperty()
+    sort: StringProperty()
 classes.append(PropObject)
 
 class ButtonArea(PropertyGroup):
@@ -834,6 +688,7 @@ class ButtonEnum(PropertyGroup):
     Index : IntProperty()
     selected : BoolProperty(update=Radiobutton)
 classes.append(ButtonEnum)
+#endregion
 
 def textlist(self, context):
     l = []
@@ -850,30 +705,60 @@ def buttonlist(self, context):
 class STB_Properties(AddonPreferences):
     bl_idname = __name__
 
-    ButtonName: StringProperty(name="Name", description="Set the name of the Button", default="")
-    TextsList: EnumProperty(name="Text", description="Chose a Text to convert into a Button", items=textlist)
-    Autosave: BoolProperty(name="Autosave", description="Save your changes automatically to the files", default=True)
+    ButtonName : StringProperty(name="Name", description="Set the name of the Button", default="")
+    TextsList : EnumProperty(name="Text", description="Chose a Text to convert into a Button", items=textlist)
+    Autosave : BoolProperty(name="Autosave", description="Save your changes automatically to the files", default=True)
+    AutoLoad : BoolProperty(name= "Auto Load", description= "Load the script into the Texteditor on start or on add", default= False)
+    DelteScriptAfterRun : BoolProperty(name= "Delete Script after Run", description= "Delete the script in the Editor after the linked Scriptbutton was pressed", default= True)
 
     SelctedButtonEnum : CollectionProperty(type=ButtonEnum)
-    SelectedButton: EnumProperty(items=buttonlist, name="INTERNAL")
-    SelectedEnum: IntProperty(name="INTERNAL")
+    SelectedButton : EnumProperty(items=buttonlist, name="INTERNAL")
+    SelectedEnum : IntProperty(name="INTERNAL")
     MultiButtonSelection : CollectionProperty(type= ButtonSelection)
 
+    Update : BoolProperty()
+    Version : StringProperty()
+    Restart : BoolProperty()
+    AutoUpdate : BoolProperty(default= True, name= "Auto Update", description= "automatically search for a new Update")
+
     def draw(self, context):
+        STB = bpy.context.preferences.addons[__name__].preferences
         layout = self.layout
-        layout.prop(self, 'Autosave')
+        row = layout.row()
+        row.prop(self, 'Autosave')
+        row.prop(self, 'AutoLoad')
+        row.prop(self, 'DelteScriptAfterRun')
+        layout.separator(factor= 0.8)
+        col = layout.column()
+        col.prop(STB, 'AutoUpdate')
+        row = col.row()
+        if STB.Update:
+            row.operator(update.STB_OT_Update.bl_idname, text= "Update")
+            row.operator(update.AR_OT_ReleaseNotes.bl_idname, text= "Release Notes")
+        else:
+            row.operator(update.STB_OT_CheckUpdate.bl_idname, text= "Check For Updates")
+            if STB.Restart:
+                row.operator(update.STB_OT_Restart.bl_idname, text= "Restart to Finsih")
+        if STB.Version != '':
+            if STB.Update:
+                col.label(text= "A new Version is available (" + STB.Version + ")")
+            else:
+                col.label(text= "You are using the latest Vesion (" + STB.Version + ")")
 classes.append(STB_Properties)
 
-# Registration ================================================================================================
+# region Registration
 for spaceType in SpaceTypes:
     panelfactory(spaceType)
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+    for cls in update.classes:
+        bpy.utils.register_class(cls)
     bpy.types.Scene.b_stb = CollectionProperty(type=ButtonPropertys)
     bpy.app.handlers.depsgraph_update_pre.append(LoadSaves)
-    bpy.app.timers.register(LoadSaves, first_interval = 3)
+    bpy.app.timers.register(LoadSaves, first_interval = 1)
+    update.register()
 
 def unregister():
     for ele in bpy.context.scene.b_stb:
@@ -888,5 +773,14 @@ def unregister():
         bpy.app.handlers.depsgraph_update_pre.remove(LoadSaves)
     except:
         pass
+    update.unregister()
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    for cls in update.classes:
+        bpy.utils.unregister_class(cls)
+
+#endregion
+
+#================================================
+# The region commentaries use the extension “#region folding for VS Code” 
+#================================================
