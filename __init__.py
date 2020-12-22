@@ -11,7 +11,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (2, 83, 9),
-    "version": (2, 1, 0),
+    "version": (2, 1, 1),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -255,9 +255,9 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             btn = b_stb[self.btn_name]
             sort, back = imfc.SortProps(btn, 'Dialog')
             if len(sort) > 0 or len(back) > 0:
-                return self.execute(context)
+                return bpy.context.window_manager.invoke_props_dialog(self)
             else:
-                return {'CANCELLED'}
+                return self.execute(context)
 classes.append(STB_OT_ScriptButton)
 
 class STB_OT_RemoveButton(bpy.types.Operator):
