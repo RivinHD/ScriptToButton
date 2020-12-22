@@ -11,7 +11,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (2, 83, 9),
-    "version": (2, 1, 0),
+    "version": (2, 0, 0),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -63,7 +63,7 @@ def panelfactory(spaceType):
             if STB.AutoUpdate and STB.Update:
                 box = layout.box()
                 box.label(text= "A new Version is available (" + STB.Version + ")")
-                box.operator(update.ANE_OT_Update.bl_idname, text= "Update")
+                box.operator(update.STB_OT_Update.bl_idname, text= "Update")
             p_stb = context.preferences.addons[__name__].preferences
             col = layout.column()
             row = col.row(align= True)
@@ -734,7 +734,7 @@ class STB_Properties(AddonPreferences):
         row = col.row()
         if STB.Update:
             row.operator(update.STB_OT_Update.bl_idname, text= "Update")
-            row.operator(update.AR_OT_ReleaseNotes.bl_idname, text= "Release Notes")
+            row.operator(update.STB_OT_ReleaseNotes.bl_idname, text= "Release Notes")
         else:
             row.operator(update.STB_OT_CheckUpdate.bl_idname, text= "Check For Updates")
             if STB.Restart:
