@@ -120,7 +120,7 @@ def GetProps(text):
             if not nextline.startswith("#"):
                 inputs = currentline.replace(" ", "").split("///")
                 linename = nextline.split("=")[0]
-                valuestring = nextline.split("=")[1].split("#")[0].replace(" ", "")
+                valuestring = nextline.split("=")[1].split("#")[0]
                 for inp in inputs:
                     split = inp.split("-")
                     props.append({
@@ -628,18 +628,20 @@ def SortProps(btn, space):
             sort.append(ele)
     return (sort, back)
 
-def drawSort(sort, back, layout):
+def drawSort(sort, back, baseLayout):
     lastIndex = 0
     lastRow = [-1, None, 0, 0]
     for ele in sort:
+        layout = baseLayout
         skipSpace(ele[0] - lastIndex, layout)
-        lastIndex = ele[0]
+        lastIndex = ele[0] + 1
         if ele[0] == lastRow[0]:
             layout = lastRow[1]
             newRow = False
         else:
             if lastRow[2] > 0:
                 skipSpace(1, lastRow[1], lastRow[2])
+                lastRow[3] = 0
             newRow = True
         row, skipBack, lastSpace = drawRow(ele[1], ele[-1], layout, lastRow[3], newRow)
         lastRow = [ele[0], row, skipBack, lastSpace]
@@ -655,10 +657,9 @@ def drawRow(eleParse, eleDraw, row, lastSpace, newRow):
         space = eleParse[0]
     else:
         space = eleParse[0] - lastSpace
-    lastSpace = 0
+    lastSpace = 1
     if space > 0:
         skipSpace(1, row, space)
-        lastSpace = 1
     eleDraw(layout=row)
     if len(eleParse) > 1:
         back = eleParse[1]
@@ -668,9 +669,10 @@ def drawRow(eleParse, eleDraw, row, lastSpace, newRow):
         
 def skipSpace(skips, layout, scale = 1):
     for i in range(skips):
-        col = layout.column()
-        col.scale_x = scale
-        col.label(text= "")
+        if scale > 0:
+            col = layout.column()
+            col.scale_x = scale
+            col.label(text= "")
 
 def parseSort(sort):
     if sort.startswith("[") and sort.endswith("]") and (n.digit() or n == "/" or n == ',' for n in sort[1:-1]):
