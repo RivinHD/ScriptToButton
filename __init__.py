@@ -11,7 +11,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (2, 83, 9),
-    "version": (2, 1, 1),
+    "version": (2, 1, 2),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -708,7 +708,7 @@ class STB_Properties(AddonPreferences):
     ButtonName : StringProperty(name="Name", description="Set the name of the Button", default="")
     TextsList : EnumProperty(name="Text", description="Chose a Text to convert into a Button", items=textlist)
     Autosave : BoolProperty(name="Autosave", description="Save your changes automatically to the files", default=True)
-    AutoLoad : BoolProperty(name= "Auto Load", description= "Load the script into the Texteditor on start or on add", default= False)
+    AutoLoad : BoolProperty(name= "Load to Texteditor", description= "Load the script into the Texteditor on start, on add or on manuel load", default= False)
     DelteScriptAfterRun : BoolProperty(name= "Delete Script after Run", description= "Delete the script in the Editor after the linked Scriptbutton was pressed", default= True)
 
     SelctedButtonEnum : CollectionProperty(type=ButtonEnum)

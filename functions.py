@@ -529,7 +529,7 @@ def ImportButton(filepath, context, p_stb, txt):
     if p_stb.Autosave:
         SaveText(bpy.data.texts[name], name)
     if not p_stb.AutoLoad:
-        bpy.data.texts.remove(bpy.data.texts[script])
+        bpy.data.texts.remove(bpy.data.texts[name])
     Fails = Add_AreasANDProps(btn, txt)
     return ([name],Fails)
 
@@ -618,7 +618,7 @@ def SortProps(btn, space):
     for prop in btn.ObjectProps:
         if prop.space == space:
             l.append(parseSort(prop.sort) + [functools.partial(drawPropSearch, prop=prop, context=bpy.data, contextprop="objects")])
-    l.sort()
+    l.sort(key=lambda x: [x[0], x[1]])
     back = []
     sort = []
     for ele in l:
@@ -631,8 +631,8 @@ def SortProps(btn, space):
 def drawSort(sort, back, baseLayout):
     lastIndex = 0
     lastRow = [-1, None, 0, 0]
+    layout = baseLayout
     for ele in sort:
-        layout = baseLayout
         skipSpace(ele[0] - lastIndex, layout)
         lastIndex = ele[0] + 1
         if ele[0] == lastRow[0]:
