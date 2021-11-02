@@ -11,7 +11,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (2, 83, 9),
-    "version": (2, 1, 0),
+    "version": (2, 1, 3),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -24,15 +24,6 @@ SpaceTypes = ["VIEW_3D","IMAGE_EDITOR","NODE_EDITOR","SEQUENCE_EDITOR","CLIP_EDI
 # Functions ----------------------------------------------------
 @persistent
 def LoadSaves(dummy = None):
-    try:
-        bpy.app.timers.unregister(LoadSaves)
-    except:
-        pass
-    try:
-        bpy.app.handlers.depsgraph_update_pre.remove(LoadSaves)
-    except:
-        return
-    print("------------------Load-----------------")
     btnFails = imfc.Load()
     mes = "'''"
     for name, Fails in zip(btnFails[0], btnFails[1]) :
@@ -201,7 +192,10 @@ class STB_OT_AddButton(bpy.types.Operator):
                 col.enabled = False
                 col.prop(self, 'TextList')
             else:
-                col.prop(p_stb, 'TextsList')
+                if len(bpy.data.texts):
+                    col.prop(p_stb, 'TextsList')
+                else:
+                    col.label(text= "No Text available", icon= "ERROR")
 classes.append(STB_OT_AddButton)
 
 class STB_OT_ScriptButton(bpy.types.Operator):
@@ -255,9 +249,9 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             btn = b_stb[self.btn_name]
             sort, back = imfc.SortProps(btn, 'Dialog')
             if len(sort) > 0 or len(back) > 0:
-                return self.execute(context)
+                return bpy.context.window_manager.invoke_props_dialog(self)
             else:
-                return {'CANCELLED'}
+                return self.execute(context)
 classes.append(STB_OT_ScriptButton)
 
 class STB_OT_RemoveButton(bpy.types.Operator):
@@ -419,8 +413,10 @@ class STB_OT_Export(bpy.types.Operator, ExportHelper):
         p_stb = context.preferences.addons[__name__].preferences
         if self.Mode == "py":
             if not os.path.isdir(self.filepath):
-                self.report({'ERROR'}, "The given filepath is not a dirctory")
-                return {'CANCELLED'}
+                self.filepath = os.path.dirname(self.filepath)
+                if not os.path.isdir(self.filepath):
+                    self.report({'ERROR'}, "The given filepath is not a dirctory")
+                    return {'CANCELLED'}
         else:
             if not self.filepath.endswith(".zip"):
                 self.report({'ERROR'}, "The given filepath is not a .zip file")
@@ -691,13 +687,7 @@ classes.append(ButtonEnum)
 #endregion
 
 def textlist(self, context):
-    l = []
-    for i in bpy.data.texts:
-        st1 = i.name
-        st2 = i.name
-        st3 = ""
-        l.append((st1,st2,st3))
-    return l
+    return [(i.name, i.name, "") for i in bpy.data.texts]
 
 def buttonlist(self, context):
     return imfc.ListToEnumitems(imfc.GetAllButtonnames())
@@ -708,7 +698,7 @@ class STB_Properties(AddonPreferences):
     ButtonName : StringProperty(name="Name", description="Set the name of the Button", default="")
     TextsList : EnumProperty(name="Text", description="Chose a Text to convert into a Button", items=textlist)
     Autosave : BoolProperty(name="Autosave", description="Save your changes automatically to the files", default=True)
-    AutoLoad : BoolProperty(name= "Auto Load", description= "Load the script into the Texteditor on start or on add", default= False)
+    AutoLoad : BoolProperty(name= "Load to Texteditor", description= "Load the script into the Texteditor on start, on add or on manuel load", default= False)
     DelteScriptAfterRun : BoolProperty(name= "Delete Script after Run", description= "Delete the script in the Editor after the linked Scriptbutton was pressed", default= True)
 
     SelctedButtonEnum : CollectionProperty(type=ButtonEnum)
@@ -756,8 +746,7 @@ def register():
     for cls in update.classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.b_stb = CollectionProperty(type=ButtonPropertys)
-    bpy.app.handlers.depsgraph_update_pre.append(LoadSaves)
-    bpy.app.timers.register(LoadSaves, first_interval = 1)
+    bpy.app.handlers.load_post.append(LoadSaves)
     update.register()
 
 def unregister():
@@ -769,10 +758,6 @@ def unregister():
         for boolvec in ele.BoolVectorProps:
             exec("del bpy.types.Scene.%s" % boolvec.address.split(".")[-1])
     del bpy.types.Scene.b_stb
-    try:
-        bpy.app.handlers.depsgraph_update_pre.remove(LoadSaves)
-    except:
-        pass
     update.unregister()
     for cls in classes:
         bpy.utils.unregister_class(cls)
@@ -780,7 +765,3 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
 #endregion
-
-#================================================
-# The region commentaries use the extension “#region folding for VS Code” 
-#================================================

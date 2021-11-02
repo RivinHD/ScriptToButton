@@ -72,15 +72,6 @@ def Update():
 
 @persistent
 def onStart(dummy = None):
-    try:
-        bpy.app.timers.unregister(onStart)
-    except:
-        if bpy.data.filepath == '':
-            return
-    try:
-        bpy.app.handlers.depsgraph_update_pre.remove(onStart)
-    except:
-        return
     STB = bpy.context.preferences.addons[__package__].preferences
     STB.Update = False
     STB.Version = ''
@@ -155,9 +146,7 @@ classes.append(STB_OT_ReleaseNotes)
 
 # def Registartion
 def register():
-    bpy.app.handlers.depsgraph_update_pre.append(onStart)
-    bpy.app.timers.register(onStart, first_interval = 1)
+    bpy.app.handlers.load_post.append(onStart)
 
 def unregister():
-    if onStart in bpy.app.handlers.depsgraph_update_pre:
-        bpy.app.handlers.depsgraph_update_pre.remove(onStart)
+    bpy.app.handlers.load_post.remove(onStart)
