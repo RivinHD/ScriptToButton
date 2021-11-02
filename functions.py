@@ -479,12 +479,22 @@ def GetConsoleError():
         error += '   File  "' + str(tb.filename) +'", line ' + str(tb.lineno) + ", in " + tb.name +"\n"
     return 'Traceback (most recent call last):\n'+ error + str(sys.last_type.__name__) + ": " + str(sys.last_value)
 
+def get_export_text(selection):
+    text = bpy.data.texts.get(selection.name)
+    if text:
+        text = text.as_string()
+    else:
+        destination = "%s/Storage/%s.py" %(os.path.dirname(os.path.abspath(__file__)), selection.name)
+        with open(destination, 'r', encoding= "utf-8") as file:
+            text = file.read()
+    return text
+
 def Export(mode, selections, p_stb, context, dir_filepath):
     if mode == "py":
         for selc in selections:
             path = os.path.join(dir_filepath, selc.btn_name + ".py")
             with open(path, 'w', encoding='utf8') as pyfile:
-                pyfile.write(bpy.data.texts[selc.name].as_string())
+                pyfile.write(get_export_text(selc))
     else:
         folderpath = os.path.join(bpy.app.tempdir, "STB_Zip")
         if not os.path.exists(folderpath):
@@ -493,7 +503,7 @@ def Export(mode, selections, p_stb, context, dir_filepath):
             for selc in selections:
                 zip_path = folderpath + "/" + selc.btn_name + ".py"
                 with open(zip_path, 'w', encoding='utf8') as recfile:
-                    recfile.write(bpy.data.texts[selc.name].as_string())
+                    recfile.write(get_export_text(selc))
                 zip_it.write(zip_path, selc.btn_name + ".py")
                 os.remove(zip_path)
         os.rmdir(folderpath)
@@ -506,7 +516,7 @@ def ImportZip(filepath, context, p_stb):
             if i.endswith(".py"):
                 filepaths.append(i)
         for filep in filepaths:
-            txt = str(zip_out.read(filep))
+            txt = zip_out.read(filep).decode("utf-8").replace("\r","")
             Fail = ImportButton(filep, context, p_stb, txt)
             btnFails[0].extend(Fail[0])
             btnFails[1].append(Fail[1])
