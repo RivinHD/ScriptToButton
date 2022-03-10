@@ -35,10 +35,11 @@ def CheckForUpdate():
                             if updateVersion[0] > currentVersion[0] or (updateVersion[0] == currentVersion[0] and updateVersion[1] > currentVersion[1]) or (updateVersion[0] == currentVersion[0] and updateVersion[1] == currentVersion[1] and updateVersion[2] > currentVersion[2]):
                                 return (True, updateVersion)
                             else:
-                                return (False, currentVersion)
+                                return (False, currentVersion)          
     except Exception as e:
         print(e)
-        return (False, "no Connection")
+        return (False, "no Connection")                 
+    return (False, "Error")
 
 def GetVersion(line):
     return eval("(%s)" %line.split("(")[1].split(")")[0])

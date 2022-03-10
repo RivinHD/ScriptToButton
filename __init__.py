@@ -6,12 +6,14 @@ from bpy.app.handlers import persistent
 from . import functions as imfc
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from . import update
+import traceback
+import sys
 
 bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
-    "blender": (2, 83, 9),
-    "version": (2, 1, 3),
+    "blender": (3, 0, 1),
+    "version": (2, 1, 4),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -212,16 +214,16 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             imfc.GetText(self.btn_name)
             imfc.UpdateAllProps(b_stb[self.btn_name])
         text = bpy.data.texts[self.btn_name]
-        ctx = bpy.context.copy()
-        ctx['edit_text'] = text
         try:
-            bpy.ops.text.run_script(ctx)
+            exec(compile(text.as_string(), text.name, 'exec'))
             if p_stb.DelteScriptAfterRun:
                 bpy.data.texts.remove(text)
-        except:
+        except Exception:
             if p_stb.DelteScriptAfterRun:
                 bpy.data.texts.remove(text)
-            error = imfc.GetConsoleError()
+            error = traceback.format_exception(*sys.exc_info())
+            error.pop(1)
+            error = "".join(error)
             if error:
                 self.report({'ERROR'}, "The linked Script is not working\n\n%s" % error)
             return {'CANCELLED'}
