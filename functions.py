@@ -2,7 +2,6 @@ import os
 import time
 import bpy
 import sys
-import traceback
 import zipfile
 import threading
 from bpy.props import IntVectorProperty, FloatVectorProperty, BoolVectorProperty, PointerProperty, StringProperty
@@ -470,14 +469,15 @@ def TypeGetter(value, vtype):
     elif vtype == 'boolvector':
         return [bool(i) for i in eval(value.boolvectorprop + "['prop']")]
 
-def GetConsoleError():
-    lasttb = sys.last_traceback
-    if lasttb is None:
-        return False
-    error = ""
-    for tb in traceback.extract_tb(lasttb):
-        error += '   File  "' + str(tb.filename) +'", line ' + str(tb.lineno) + ", in " + tb.name +"\n"
-    return 'Traceback (most recent call last):\n'+ error + str(sys.last_type.__name__) + ": " + str(sys.last_value)
+def get_export_text(selection):
+    text = bpy.data.texts.get(selection.name)
+    if text:
+        text = text.as_string()
+    else:
+        destination = "%s/Storage/%s.py" %(os.path.dirname(os.path.abspath(__file__)), selection.name)
+        with open(destination, 'r', encoding= "utf-8") as file:
+            text = file.read()
+    return text
 
 def get_export_text(selection):
     text = bpy.data.texts.get(selection.name)
