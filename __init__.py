@@ -220,7 +220,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
                 bpy.data.texts.remove(text)
         except Exception:
             error = traceback.format_exception(*sys.exc_info())
-            error_split = error[3].replace('"<string>"','').split(',')
+            error_split = error[3].replace('"<string>"','').split(',') # corrects the filename of the exception to the text name, otherwise "<string>"
             error[3] = '%s "%s",%s' %(error_split[0], text.name, error_split[1])
             error.pop(2) # removes exec(self.as_string(), mod.__dict__) in bpy_types.py
             error.pop(1) # removes text.as_module()
