@@ -183,10 +183,10 @@ class STB_OT_AddButton(bpy.types.Operator):
         if self.ShowSkip:
             layout.prop(self, 'Mode', expand= True)
         if self.Mode == 'add':
-            if p_stb.ButtonName in self.AllNames:
+            if self.Name in self.AllNames:
                 box = layout.box()
                 box.alert = True
-                box.label(text= '"' + p_stb.ButtonName + '" will be overwritten', icon= 'ERROR')
+                box.label(text= '"' + self.Name + '" will be overwritten', icon= 'ERROR')
             col = layout.column()
             col.prop(self, 'Name')
             col = layout.column()
@@ -215,7 +215,7 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             imfc.UpdateAllProps(b_stb[self.btn_name])
         text = bpy.data.texts[self.btn_name]
         try:
-            exec(compile(text.as_string(), text.name, 'exec'))
+            text.as_module() # internal Blender function
             if p_stb.DelteScriptAfterRun:
                 bpy.data.texts.remove(text)
         except Exception:
