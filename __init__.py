@@ -215,17 +215,20 @@ class STB_OT_ScriptButton(bpy.types.Operator):
             imfc.UpdateAllProps(b_stb[self.btn_name])
         text = bpy.data.texts[self.btn_name]
         try:
-            text.as_module() # internal Blender function
+            text.as_module() # internal Blender function see ..\scripts\modules\bpy_types.py 
             if p_stb.DelteScriptAfterRun:
                 bpy.data.texts.remove(text)
         except Exception:
-            if p_stb.DelteScriptAfterRun:
-                bpy.data.texts.remove(text)
             error = traceback.format_exception(*sys.exc_info())
-            error.pop(1)
+            error_split = error[3].replace('"<string>"','').split(',')
+            error[3] = '%s "%s",%s' %(error_split[0], text.name, error_split[1])
+            error.pop(2) # removes exec(self.as_string(), mod.__dict__) in bpy_types.py
+            error.pop(1) # removes text.as_module()
             error = "".join(error)
             if error:
                 self.report({'ERROR'}, "The linked Script is not working\n\n%s" % error)
+            if p_stb.DelteScriptAfterRun:
+                bpy.data.texts.remove(text)
             return {'CANCELLED'}
         return {"FINISHED"}
 
