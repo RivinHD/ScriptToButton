@@ -13,7 +13,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (3, 0, 1),
-    "version": (2, 1, 4),
+    "version": (2, 1, 6),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -121,12 +121,16 @@ def panelfactory(spaceType):
             b_stb = context.scene.b_stb
             p_stb = context.preferences.addons[__name__].preferences
             if len(b_stb):
-                btn = b_stb[p_stb['SelectedButton']]
-                sort, back = imfc.SortProps(btn, 'Panel')
-                if len(sort) > 0 or len(back) > 0:
-                    imfc.drawSort(sort, back, layout)
-                else :
+                selected_button = p_stb.get('SelectedButton', None)
+                if selected_button is None:
                     layout.label(text= "No Properties")
+                    return
+                btn = b_stb[selected_button]
+                sort, back = imfc.SortProps(btn, 'Panel')
+                if not(len(sort) > 0 or len(back) > 0):
+                    layout.label(text= "No Properties")
+                    return
+                imfc.drawSort(sort, back, layout)
     STB_PT_Properties.__name__ = "STB_PT_Properties_%s" %spaceType
     classes.append(STB_PT_Properties)
 
@@ -164,7 +168,7 @@ class STB_OT_AddButton(bpy.types.Operator):
                 return {"FINISHED"}
             Fails = imfc.AddButton(p_stb, self.Name, txt)
             if len(Fails[0]) or len(Fails[1]):
-                self.report({'ERROR'}, "Not all Areas or Properties could be added because the Syntax is invailid: %s" % imfc.CreatFailmessage(Fails))
+                self.report({'ERROR'}, "Not all Areas or Properties could be added because the Syntax is invalid: %s" % imfc.CreatFailmessage(Fails))
             p_stb.SelectedButton # Update this Enum
         bpy.context.area.tag_redraw()
         return {"FINISHED"}

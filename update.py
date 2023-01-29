@@ -137,7 +137,7 @@ classes.append(STB_OT_Restart)
 
 class STB_OT_ReleaseNotes(Operator):
     bl_idname = "stb.releasenotes"
-    bl_label = "Releas Notes"
+    bl_label = "Release Notes"
     bl_description = "open the Releas Notes in the Web-Browser"
 
     def execute(self, context):
