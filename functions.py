@@ -45,6 +45,7 @@ def GetAllSavedScripts():
     l = []
     for file in os.listdir(storage_dir):
         l.append(file.replace(".py", ""))
+    l.sort()
     return l
 
 
