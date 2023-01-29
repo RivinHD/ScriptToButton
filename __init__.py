@@ -1,13 +1,11 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, PointerProperty, CollectionProperty, BoolProperty, IntProperty, FloatProperty, BoolVectorProperty, IntVectorProperty, FloatVectorProperty
 from bpy.types import Operator, Panel, PropertyGroup, AddonPreferences
-import os
 from bpy.app.handlers import persistent
 from . import functions as imfc
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from . import update
-import traceback
-import sys
+import traceback, sys, os
 
 bl_info = {
     "name": "Script To Button",

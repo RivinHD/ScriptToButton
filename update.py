@@ -25,11 +25,11 @@ def CheckForUpdate():
         with open(os.path.join(os.path.dirname(__file__),"__init__.py"), 'r', encoding= "utf-8", errors='ignore') as currentFile:
             currentContext = currentFile.read()
             lines = currentContext.splitlines()
-            for i in range(15):
+            for i in range(50):
                 if lines[i].strip().startswith('"version"'):
                     currentVersion = GetVersion(lines[i])
                     lines = updateContent.splitlines()
-                    for j in range(15):
+                    for j in range(50):
                         if lines[j].strip().startswith('"version"'):
                             updateVersion = GetVersion(lines[j])
                             if updateVersion[0] > currentVersion[0] or (updateVersion[0] == currentVersion[0] and updateVersion[1] > currentVersion[1]) or (updateVersion[0] == currentVersion[0] and updateVersion[1] == currentVersion[1] and updateVersion[2] > currentVersion[2]):
