@@ -10,7 +10,7 @@ You can also define properties for your script that allow you to use user input 
 3. Enable the Add-on
 
 # Usage
-Go to the Sidebar. A tab named "Script To Button" is now available.
+Go to the Sidebar. A tab named "Script To Button" is now available. (Also see [Wiki](https://github.com/RivinHD/ScriptToButton/wiki))
 
 ## "Controls" Panel
 Here are control buttons for the Add-on located.
