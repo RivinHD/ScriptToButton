@@ -761,8 +761,8 @@ def sort_props(button: STB_button_properties, space: str) -> tuple[list, list]:
 def draw_sort(sort: list, back: list, baseLayout: UILayout):
     lastIndex = 0
     lastRow = [-1, None, 0, 0]
-    layout = baseLayout
     for ele in sort:
+        layout = baseLayout
         skip_space(ele[0] - lastIndex, layout)
         lastIndex = ele[0] + 1
         if ele[0] == lastRow[0]:
@@ -785,7 +785,7 @@ def draw_sort(sort: list, back: list, baseLayout: UILayout):
         if lastRow[2] > 0:
             skip_space(1, lastRow[1], lastRow[2])
     for ele in back:
-        ele[-1](layout=layout)
+        ele[-1](layout=baseLayout)
 
 
 def draw_row(eleParse: list, eleDraw, row: UILayout, lastSpace: int, newRow: bool) -> tuple:
