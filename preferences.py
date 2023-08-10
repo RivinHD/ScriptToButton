@@ -1,6 +1,7 @@
 import bpy
-from bpy.types import AddonPreferences
+from bpy.types import AddonPreferences, Context
 from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty, IntProperty
+from .functions import get_preferences
 
 
 class STB_preferences(AddonPreferences):
@@ -36,7 +37,7 @@ class STB_preferences(AddonPreferences):
     )
 
     def get_selected_button(self):
-        return bpy.context.scene.get("button.selected_id", "")
+        return bpy.context.scene.get("stb_button.selected_name", "")
     selected_button: StringProperty(get=get_selected_button, name="INTERNAL")
 
     update: BoolProperty()
@@ -48,8 +49,8 @@ class STB_preferences(AddonPreferences):
         description="automatically search for a new update"
     )
 
-    def draw(self, context):
-        STB = bpy.context.preferences.addons[__name__].preferences
+    def draw(self, context: Context) -> None:
+        STB_pref = get_preferences(context)
         layout = self.layout
         row = layout.row()
         row.prop(self, 'autosave')
@@ -57,30 +58,30 @@ class STB_preferences(AddonPreferences):
         row.prop(self, 'delete_script_after_run')
         layout.separator(factor=0.8)
         col = layout.column()
-        col.prop(STB, 'auto_update')
+        col.prop(STB_pref, 'auto_update')
         row = col.row()
-        if STB.Update:
-            row.operator(update.STB_OT_Update.bl_idname, text="Update")
-            row.operator(update.STB_OT_ReleaseNotes.bl_idname,
-                         text="Release Notes")
+        if STB_pref.update:
+            row.operator("stb.update", text="Update")
+            row.operator("stb.release_notes", text="Release Notes")
         else:
-            row.operator(update.STB_OT_CheckUpdate.bl_idname,
-                         text="Check For Updates")
-            if STB.Restart:
-                row.operator(update.STB_OT_Restart.bl_idname,
-                             text="Restart to Finish")
-        if STB.Version != '':
-            if STB.Update:
-                col.label(
-                    text="A new Version is available (" + STB.Version + ")")
-            else:
-                col.label(
-                    text="You are using the latest Version (" + STB.Version + ")")
+            row.operator("stb.check_update", text="Check For Updates")
+            if STB_pref.restart:
+                row.operator("stb.show_restart_menu", text="Restart to Finish")
+        if STB_pref.version == '':
+            return
+        if STB_pref.update:
+            col.label(
+                text="A new Version is available (%s)" % STB_pref.version
+            )
+        else:
+            col.label(
+                text="You are using the latest Version (%s)" % STB_pref.version
+            )
 
 
 def register():
-    bpy.utils.register_module(STB_preferences)
+    bpy.utils.register_class(STB_preferences)
 
 
 def unregister():
-    bpy.utils.unregister_module(STB_preferences)
+    bpy.utils.unregister_class(STB_preferences)

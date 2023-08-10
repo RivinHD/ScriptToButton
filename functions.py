@@ -2,10 +2,16 @@ import os
 import bpy
 import zipfile
 from bpy.props import StringProperty, PointerProperty
-from bpy.types import PropertyGroup, Context, UILayout, Text
+from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences
+from typing import TYPE_CHECKING
 import functools
-from .preferences import STB_preferences
-from .properties import VectorProperty, ButtonProperties
+if TYPE_CHECKING:
+    from .preferences import STB_preferences
+    from .properties import STB_button_properties
+else:
+    STB_button_properties = PropertyGroup
+    STB_preferences = AddonPreferences
+
 
 classes = []
 NotOneStart = [False]
@@ -63,8 +69,7 @@ def load(context: Context) -> tuple[list, list]:
     STB_pref = get_preferences(context)
     btnFails = ([], [])
     scripts = get_all_saved_scripts()
-    for i in range(len(scripts)):
-        script = scripts[i]
+    for script in scripts:
         new = scene.stb.add()
         new.name = script
         get_text(script)
@@ -163,7 +168,7 @@ BLENDER_TYPE_TO_PY_TYPE = {
     'FloatVector': (list, tuple),
     'BoolVector': (list, tuple),
     'List': (list, tuple),
-    'Object': (list, tuple),
+    'Object': bpy.types.Object,
 }
 VECTOR_TYPE = {
     'IntVector': int,
@@ -172,22 +177,23 @@ VECTOR_TYPE = {
 }
 
 
-def add_prop(button: ButtonProperties, property) -> bool:
+def add_prop(button: STB_button_properties, property) -> bool:
     try:
         value = eval(property["value"])
     except Exception:
         return False
 
     property_type = property["type"]
-    is_type = not isinstance(
-        value, BLENDER_TYPE_TO_PY_TYPE.get(property_type, None)
+    is_type = isinstance(
+        value,
+        BLENDER_TYPE_TO_PY_TYPE.get(property_type, None)
     )
     if ((property_type in {'String', 'Int', 'Float', 'Bool', 'List', 'Object'} and not is_type)
             or
             (property_type == 'Enum'
              and not (
                  is_type
-                 and isinstance(value[1], {list, tuple})
+                 and isinstance(value[1], (list, tuple))
                  and isinstance(value[0], str)
                  and all(map(lambda x: isinstance(x, str), value[1])))
              )
@@ -225,26 +231,25 @@ def add_prop(button: ButtonProperties, property) -> bool:
     elif property_type in {'IntVector', 'FloatVector', 'BoolVector'}:
         new_element.address = create_vector_prop(
             len(value),
-            "%s_%s%s" % (
+            ("%s_%s%s" % (
                 button.name,
                 name,
                 str(new_element.line)
-            ).replace(" ", ""),
+            )).replace(" ", ""),
             property_type,
             "bpy.context.scene.stb['%s'].%sProps['%s']" % (
                 button.name,
                 property_type,
                 name
-            ),
-            property_type
+            )
         )
         exec("%s.prop = value" % new_element.address)
     elif property_type == 'List':
         new_element.prop.clear()
         for i in value:
             prop = new_element.prop.add()
-            if not isinstance(i, {list, tuple}):
-                if isinstance(i, {str, int, float, bool}):
+            if not isinstance(i, (list, tuple)):
+                if isinstance(i, (str, int, float, bool)):
                     exec("prop." + str(type(i).__name__) + "prop = i")
                     prop.ptype = str(type(i).__name__)
                 else:
@@ -252,24 +257,24 @@ def add_prop(button: ButtonProperties, property) -> bool:
                     prop.ptype = 'str'
                 continue
 
-            if (isinstance(i, {list, tuple})
+            if (isinstance(i, (list, tuple))
                     and (isinstance(i[1], list) or isinstance(i[1], tuple))
                     and isinstance(i[0], str)
                     and all(map(lambda x: isinstance(x, str), i[1]))):
-                prop.enumprop.items.clear()  # Enum
+                prop.enum_prop.items.clear()  # Enum
                 prop.ptype = 'enum'
                 for v in i[1]:
-                    item = prop.enumprop.items.add()
+                    item = prop.enum_prop.items.add()
                     item.name = v
                     item.item = v
                 try:
-                    prop.enumprop.prop = i[0]
+                    prop.enum_prop.prop = i[0]
                 except Exception:
-                    prop.enumprop.prop = i[1][0]
+                    prop.enum_prop.prop = i[1][0]
             elif (isinstance(i, {list, tuple})
                   and all(map(lambda x: isinstance(x, bool), i))
                   and len(i) <= 32):  # BoolVector
-                prop.boolvectorprop = create_vector_prop(
+                prop.boolvector_prop = create_vector_prop(
                     len(i),
                     ("%s_%s_list_%s" % (
                         button.name,
@@ -280,15 +285,14 @@ def add_prop(button: ButtonProperties, property) -> bool:
                     "bpy.context.scene.stb['%s'].ListProps['%s']" % (
                         button.name,
                         name
-                    ),
-                    "List"
+                    )
                 )
                 prop.ptype = 'boolvector'
-                exec("%s.prop = i" % prop.boolvectorprop)
+                exec("%s.prop = i" % prop.boolvector_prop)
             elif (isinstance(i, {list, tuple})
                   and all(map(lambda x: isinstance(x, int), i))
                   and len(i) <= 32):  # IntVector
-                prop.intvectorprop = create_vector_prop(
+                prop.intvector_prop = create_vector_prop(
                     len(i),
                     ("%s_%s_list_%s" % (
                         button.name,
@@ -299,25 +303,27 @@ def add_prop(button: ButtonProperties, property) -> bool:
                     "bpy.context.scene.stb['%s'].ListProps['%s']" % (
                         button.name,
                         name
-                    ),
-                    "List"
+                    )
                 )
                 prop.ptype = 'intvector'
-                exec("%s.prop = i" % prop.intvectorprop)
+                exec("%s.prop = i" % prop.intvector_prop)
             elif (isinstance(i, {list, tuple})
                   and all(map(lambda x: isinstance(x, float), i))
                   and len(i) <= 32):  # FloatVector
-                prop.floatvectorprop = create_vector_prop(
+                prop.floatvector_prop = create_vector_prop(
                     len(i),
-                    ("%s_%s_list_%s" % (button.name, name, str(
-                        len(new_element.prop)))).replace(" ", ""),
+                    ("%s_%s_list_%s" % (
+                        button.name,
+                        name, str(len(new_element.prop)))
+                     ).replace(" ", ""),
                     "FloatVector",
                     "bpy.context.scene.stb['%s'].ListProps['%s']" % (
-                        button.name, name),
-                    "List"
+                        button.name,
+                        name
+                    ),
                 )
                 prop.ptype = 'floatvector'
-                exec("%s.prop = i" % prop.floatvectorprop)
+                exec("%s.prop = i" % prop.floatvector_prop)
             else:
                 prop.strprop = str(i)
                 prop.ptype = 'str'
@@ -429,7 +435,7 @@ def load_add_button(name):
     bpy.ops.stb.addbutton(show_skip=True, name=name, text_list=name)
 
 
-def reload_button_text(button: ButtonProperties, text: Text) -> tuple[list, list]:
+def reload_button_text(button: STB_button_properties, text: Text) -> tuple[list, list]:
     delete_vector_props(button)
     delete_list_prop(button)
     return add_areas_and_props(button, text)
@@ -441,10 +447,10 @@ Property_type = {
 }
 
 
-def add_areas_and_props(button: ButtonProperties, text: str) -> tuple[list, list]:
+def add_areas_and_props(button: STB_button_properties, text: str) -> tuple[list, list]:
     button.areas.clear()  # Clear Area and Prop
     for prop in Property_type:
-        getattr(button, "%sProps" & prop).clear()
+        getattr(button, "%sProps" % prop).clear()
 
     areas = get_areas(text)  # Get Areas
     failed_areas = []
@@ -471,11 +477,21 @@ def add_areas_and_props(button: ButtonProperties, text: str) -> tuple[list, list
     return (failed_areas, failed_props)
 
 
+def update_vector_property(self, context):
+    prop = eval(self.address)
+    update_text(
+        prop.line,
+        prop.linename,
+        [ele for ele in self.prop],
+        eval("context.scene.%s" % prop.path_from_id().split(".")[0])
+    )
+
+
 def create_vector_prop(size: int, name: str, type: str, back_address: str):
-    property_func = getattr(bpy.types, "%sProperty" % type)
+    property_func = getattr(bpy.props, "%sProperty" % type)
 
     class VectorProp(PropertyGroup):
-        prop: property_func(size=size, update=VectorProperty.update_prop)
+        prop: property_func(size=size, update=update_vector_property)
         address: StringProperty(default=back_address)
     VectorProp.__name__ = "VectorProp_%s_%s" % (type, name)
     bpy.utils.register_class(VectorProp)
@@ -492,7 +508,7 @@ def unregister_vector():
         bpy.utils.unregister_class(cls)
 
 
-def delete_vector_props(button: ButtonProperties):
+def delete_vector_props(button: STB_button_properties):
     props = [
         *button.IntVectorProps,
         *button.FloatVectorProps,
@@ -505,16 +521,18 @@ def delete_vector_props(button: ButtonProperties):
             del bpy.context.scene[name]
 
 
-def delete_list_prop(button: ButtonProperties):
+def delete_list_prop(button: STB_button_properties):
     for ele in button.ListProps:
         for prop in ele.prop:
+            if prop.ptype not in ("intvector", "floatvector", "boolvector"):
+                continue
             name = getattr(prop, "%s_prop" % prop.ptype).split(".")[-1]
             if hasattr(bpy.types.Scene, name):
                 delattr(bpy.types.Scene, name)
                 del bpy.context.scene[name]
 
 
-def update_text(linepos: int, varname: str, message: str, button: ButtonProperties):
+def update_text(linepos: int, varname: str, message: str, button: STB_button_properties):
     if NotOneStart[0] and bpy.data.texts.find(button.name) != -1:
         text = bpy.data.texts[button.name]
         text.lines[linepos].body = "%s= %s" % (varname, str(message))
@@ -539,7 +557,7 @@ def type_getter(value, vtype):
     func = TYPE_GETTER.get(vtype, None)
     if func is None:
         return
-    return func()
+    return func(value)
 
 
 def get_export_text(selection):
@@ -608,7 +626,7 @@ def import_button(
     )
     bpy.data.texts.new(name)
     bpy.data.texts[name].write(txt)
-    button: ButtonProperties = context.scene.stb.add()
+    button: STB_button_properties = context.scene.stb.add()
     button.name = name
     button.selected = True
 
@@ -644,32 +662,36 @@ def check_for_duplicates(check_list: set, name: str, num: int = 1) -> str:
 
 def rename(context: Context, name: str):
     STB_pref = get_preferences(context)
-    button: ButtonProperties = context.scene.stb[STB_pref.selected_button]
+    button: STB_button_properties = context.scene.stb[STB_pref.selected_button]
     if bpy.data.texts.find(STB_pref.selected_button) == -1:
         get_text(STB_pref.selected_button)
     text = bpy.data.texts[STB_pref.selected_button]
-    old_path = os.path.join(os.path.abspath(__file__), "Storage")
+    directory = os.path.dirname(os.path.abspath(__file__))
+    old_path = os.path.join(directory, "Storage", "%s.py" %
+                            STB_pref.selected_button)
     if name != button.name:
         name = check_for_duplicates(get_all_button_names(context), name)
     button.name = name
+    button.selected = True
     text.name = name
-    os.rename(old_path, os.path.join(os.path.abspath(__file__), "Storage"))
+    os.rename(old_path, os.path.join(directory, "Storage", "%s.py" % name))
     if not STB_pref.autoload:
         bpy.data.texts.remove(text)
 
 
-def update_all_props(button: ButtonProperties):
+def update_all_props(button: STB_button_properties, context: Context):
     simple_props = [
-        *button.StringProps,
-        *button.IntProps,
-        *button.FloatProps,
-        *button.BoolProps,
-        *button.EnumProps,
-        *button.ObjectProps,
-        *button.ListProps
+        button.StringProps,
+        button.IntProps,
+        button.FloatProps,
+        button.BoolProps,
+        button.EnumProps,
+        button.ObjectProps,
+        button.ListProps
     ]
     for prop in simple_props:
         prop.update()
+
     vector_props = [
         *button.IntVectorProps,
         *button.FloatVectorProps,
@@ -677,10 +699,10 @@ def update_all_props(button: ButtonProperties):
     ]
     for prop in vector_props:
         prop = eval(prop.address)
-        prop.update()
+        update_vector_property(prop, context)
 
 
-def sort_props(button: ButtonProperties, space: str) -> tuple[list, list]:
+def sort_props(button: STB_button_properties, space: str) -> tuple[list, list]:
     sort_mapping = []
     simple_props = [
         *button.StringProps,
@@ -833,12 +855,12 @@ def draw_list_prop(layout: UILayout, props):
     box.label(text=props.name)
     for prop in props.prop:
         if prop.ptype.endswith("vector"):
-            address = getattr(prop, "%sprop" % prop.ptype)
+            address = getattr(prop, "%s_prop" % prop.ptype)
             box.prop(eval(address), 'prop', text="")
         elif prop.ptype == 'enum':
-            box.prop(getattr(prop, "%sprop" % prop.ptype), 'prop', text="")
+            box.prop(getattr(prop, "%s_prop" % prop.ptype), 'prop', text="")
         else:
-            box.prop(prop, "%sprop" % prop.ptype, text="")
+            box.prop(prop, "%s_prop" % prop.ptype, text="")
 
 
 def draw_prop_search(layout: UILayout, prop, context: Context, context_prop):

@@ -5,7 +5,7 @@ from bpy.props import (
     PointerProperty
 )
 from .functions import update_text
-import functions
+from . import functions
 
 classes = []
 
@@ -25,7 +25,7 @@ class STB_property_string(STB_property, PropertyGroup):
             self.line,
             self.linename,
             '"%s"' % txt,
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: StringProperty(update=update_prop)
@@ -37,7 +37,7 @@ class STB_property_int(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: IntProperty(update=update_prop)
@@ -49,7 +49,7 @@ class STB_property_float(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: FloatProperty(update=update_prop)
@@ -61,7 +61,7 @@ class STB_property_bool(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: BoolProperty(update=update_prop)
@@ -81,23 +81,14 @@ class STB_property_enum(STB_property, PropertyGroup):
             self.line,
             self.linename,
             [self.prop, [item.item for item in self.items]],
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: EnumProperty(items=prop_items, update=update_prop)
     items: CollectionProperty(type=STB_enum_item)
 
 
-class STB_vector_property(STB_property):
-    def update_prop(self, context):
-        prop = eval(self.address)
-        update_text(
-            prop.line,
-            prop.linename,
-            [ele for ele in self.prop],
-            getattr(context.scene, self.path_from_id().split(".")[0])
-        )
-
+class STB_vector_property(STB_property, PropertyGroup):
     address: StringProperty()
 
 
@@ -115,7 +106,7 @@ class STB_enum_property(PropertyGroup):
             prop.line,
             prop.linename,
             [functions.type_getter(ele, ele.ptype) for ele in prop.prop],
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     prop: EnumProperty(items=prop_items, update=prop_update)
@@ -134,7 +125,7 @@ class STB_property_list_item(PropertyGroup):
             prop.line,
             prop.linename,
             [functions.type_getter(ele, ele.ptype) for ele in prop.prop],
-            getattr(context.scene, self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
     str_prop: StringProperty(update=update_prop)
@@ -186,10 +177,10 @@ class STB_button_properties(PropertyGroup):
             value (bool): state of button
         """
         scene = bpy.context.scene
-        selected_name = scene.get("button.selected_name", "")
+        selected_name = scene.get("stb_button.selected_name", "")
         # implementation similar to a UIList (only one selection of all can be active)
         if value:
-            scene["button.selected_name"] = self.name
+            scene["stb_button.selected_name"] = self.name
             self['selected'] = value
             button = scene.stb.get(selected_name, None)
             if button:
@@ -216,7 +207,7 @@ class STB_button_properties(PropertyGroup):
     areas: CollectionProperty(type=STB_button_area)
 
 
-class STB_texts_property(PropertyGroup):
+class STB_text_property(PropertyGroup):
     name: StringProperty()
     select: BoolProperty(default=False)
 
@@ -262,9 +253,11 @@ classes = [
     STB_enum_property,
     STB_property_list_item,
     STB_property_list,
+    STB_property_object,
     STB_button_area,
     STB_button_properties,
-    STB_texts_property
+    STB_text_property,
+    STB_export_button
 ]
 
 

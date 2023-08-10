@@ -128,7 +128,7 @@ class STB_OT_ScriptButton(Operator):
         stb = context.scene.stb
         if bpy.data.texts.find(self.name) == -1:
             functions.get_text(self.name)
-            functions.update_all_props(stb[self.name])
+            functions.update_all_props(stb[self.name], context)
         text = bpy.data.texts[self.name]
         try:
             # similar to text.as_module() -> internal Blender function see ..\scripts\modules\bpy_types.py
@@ -180,12 +180,12 @@ class STB_OT_RemoveButton(Operator):
     def draw(self, context: Context):
         STB_pref = get_preferences(context)
         layout = self.layout
-        layout.prop(self, 'deleteFile', text="Delete File")
+        layout.prop(self, 'delete_file', text="Delete File")
         row = layout.row()
         text_enabled = bpy.data.texts.find(STB_pref.selected_button) != -1
         row.enabled = text_enabled
         self.deleteText = text_enabled
-        row.prop(self, 'deleteText', text="Delete Text", toggle=False)
+        row.prop(self, 'delete_text', text="Delete Text", toggle=False)
 
     def invoke(self, context: Context, event: Event):
         return context.window_manager.invoke_props_dialog(self)
@@ -203,7 +203,7 @@ class STB_OT_Load(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(
-        name="Load from ",
+        name="Load from",
         description="Change the Mode which to load",
         items=[
             ("file", "Load from Disk", ""),
@@ -216,7 +216,7 @@ class STB_OT_Load(Operator):
         default=False
     )
     texts: CollectionProperty(
-        type=properties.TextsProperty,
+        type=properties.STB_text_property,
         name="Texts in Texteditor"
     )
 
@@ -237,8 +237,8 @@ class STB_OT_Load(Operator):
             # Texteditor -------------------------------------
             box = layout.box()
             box.prop(self, 'all', text="Load All", toggle=True)
-            if self.All:
-                for text in self.Texts:
+            if self.all:
+                for text in self.texts:
                     box.label(text=text.name, icon='CHECKBOX_HLT')
             else:
                 for text in self.Texts:
@@ -252,19 +252,19 @@ class STB_OT_Load(Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context: Context):
-        if self.Mode == "file":
+        if self.mode == "file":
             fails = functions.load(context)
-        elif self.Mode == "texteditor":
+        elif self.mode == "texteditor":
             fails = functions.load_from_texteditor(self, context)
-        mes = "\n"
+        message = "\n"
         for name, fail in zip(fails[0], fails[1]):
             if len(fail[0]) or len(fail[1]):
-                mes += "\n %s:" % name
-                mes += functions.create_fail_message(fail)
-        if mes != "\n":
+                message += "\n %s:" % name
+                message += functions.create_fail_message(fail)
+        if message != "\n":
             self.report(
                 {'ERROR'},
-                "Not all Areas or Properties could be added because the Syntax is invalid: %s" % mes
+                "Not all Areas or Properties could be added because the Syntax is invalid: %s" % message
             )
         context.area.tag_redraw()
         return {"FINISHED"}
@@ -283,7 +283,9 @@ class STB_OT_Reload(Operator):
         if text_index != -1:
             if STB_pref.autosave:
                 functions.save_text(
-                    bpy.data.texts[text_index], STB_pref.selected_button)
+                    bpy.data.texts[text_index],
+                    STB_pref.selected_button
+                )
             fails = functions.reload_button_text(
                 stb[STB_pref.selected_button],
                 bpy.data.texts[text_index].as_string()
@@ -297,8 +299,8 @@ class STB_OT_Reload(Operator):
         else:
             self.report(
                 {'ERROR'},
-                ("%s could not be reloaded, linked Text in Texteditor don't exist."
-                 ""
+                ("%s could not be reloaded, linked Text in Texteditor don't exist.\n"
+                 "\n"
                  "INFO: The linked Text must have the same name as the Button"
                  ) % STB_pref.selected_button
             )
@@ -351,11 +353,11 @@ class STB_OT_Export(Operator, ExportHelper):
     )
 
     def get_mode(self):
-        return self.get("mode", "py")
+        return self.get("mode", 0)
 
     def set_mode(self, value):
         self["mode"] = value
-        if value == "py":
+        if value == 0:
             self.filepath = self.directory
 
     mode: EnumProperty(
@@ -381,6 +383,7 @@ class STB_OT_Export(Operator, ExportHelper):
     def get_filename_ext(self):
         return ".zip" * (self.mode == "zip")
 
+    filename = ""
     filename_ext: StringProperty(default=".", get=get_filename_ext)
 
     def get_use_filter_folder(self):
@@ -508,18 +511,18 @@ class STB_OT_LoadSingleButton(Operator):
     bl_label = "Load Button"
     bl_description = "Load the script of the selected Button into the Texteditor"
 
-    def execute(self, context):
+    def execute(self, context: Context):
         STB_pref = get_preferences(context)
         stb = context.scene.stb
         functions.get_text(STB_pref.selected_button)
-        functions.update_all_props(stb[STB_pref.selected_button])
+        functions.update_all_props(stb[STB_pref.selected_button], context)
         return {"FINISHED"}
 
 
 classes = [
     STB_OT_AddButton,
     STB_OT_ScriptButton,
-    STB_OT_ScriptButton,
+    STB_OT_RemoveButton,
     STB_OT_Load,
     STB_OT_Reload,
     STB_OT_Save,

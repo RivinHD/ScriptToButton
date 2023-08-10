@@ -43,8 +43,8 @@ def check_for_update():
     update_version = (0, 0, 0)
     lines = update_content.splitlines()
     for line in lines:
-        if lines.strip().startswith('"version"'):
-            update_version = getattr(line)
+        if line.strip().startswith('"version"'):
+            update_version = get_version(line)
 
     if update_version > current_version:
         return (True, update_version)

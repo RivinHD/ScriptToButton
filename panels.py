@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Panel, Context
 from .functions import get_preferences
-import functions
+from . import functions
 
 classes = []
 
@@ -81,9 +81,7 @@ def panel_factory(spaceType):
                     "stb.script_button",
                     text=button.name
                 ).name = button.name
-                break
     STB_PT_Buttons.__name__ = "STB_PT_Buttons_%s" % spaceType
-    classes.append(STB_PT_Buttons)
 
     class STB_PT_Properties(Panel):
         bl_idname = "STB_PT_Properties_%s" % spaceType

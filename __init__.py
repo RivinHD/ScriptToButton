@@ -1,6 +1,6 @@
 import bpy
 from bpy.app.handlers import persistent
-from . import properties, preferences, update, operators, functions
+from . import properties, preferences, update, operators, functions, panels
 
 bl_info = {
     "name": "Script To Button",
@@ -37,6 +37,7 @@ def register():
     properties.register()
     operators.register()
     update.register()
+    panels.register()
     bpy.app.handlers.load_post.append(load_saves)
 
 
@@ -45,4 +46,5 @@ def unregister():
     properties.unregister()
     operators.unregister()
     update.unregister()
+    panels.unregister()
     bpy.app.handlers.load_post.remove(load_saves)
