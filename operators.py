@@ -288,7 +288,8 @@ class STB_OT_Reload(Operator):
                 )
             fails = functions.reload_button_text(
                 stb[STB_pref.selected_button],
-                bpy.data.texts[text_index].as_string()
+                bpy.data.texts[text_index].as_string(),
+                context.scene
             )
             if len(fails[0]) or len(fails[1]):
                 self.report(

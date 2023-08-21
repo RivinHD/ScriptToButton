@@ -2,9 +2,10 @@ import os
 import bpy
 import zipfile
 from bpy.props import StringProperty, PointerProperty
-from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences
+from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences, Scene
 from typing import TYPE_CHECKING
 import functools
+from .import dynamic_panels as panels
 if TYPE_CHECKING:
     from .preferences import STB_preferences
     from .properties import STB_button_properties
@@ -81,6 +82,11 @@ def load(context: Context) -> tuple[list, list]:
         if not STB_pref.autoload:
             bpy.data.texts.remove(bpy.data.texts[script])
     scene.stb[0].selected = True
+    panel_names = set(button.panel for button in scene.stb)
+    for panel in set(panels.panel_names).difference(panel_names):
+        panels.unregister_button_panel(panel)
+    for panel in panel_names.difference(panels.panel_names):
+        panels.register_button_panel(panel)
     return btnFails
 
 
@@ -95,18 +101,29 @@ def list_to_enum_items(data: list) -> list:
     return enum_items
 
 
+def get_panel(text: str) -> str:
+    lines = text.splitlines()
+    if not len(lines):
+        return "Buttons"
+    comments = (x.strip() for x in lines[0].split("///"))
+    for comment in comments:
+        if comment.startswith("#STB-Panel-"):
+            return comment.split("-")[2]
+    return "Buttons"
+
+
 def get_areas(text: str) -> list:
     lines = text.splitlines()
     if not len(lines):
         return []
-    if not lines[0].strip().startswith("#STB-Area-"):
-        return ALL_AREAS
-    areas = lines[0].replace(" ", "").split("///")
+    comments = (x.strip() for x in lines[0].split("///"))
     area_types = []
-    for area in areas:
-        if area.startswith("#STB-Area-"):
-            area_types.append(area.split("-")[2])
-    return area_types
+    for comment in comments:
+        if comment.startswith("#STB-Area-"):
+            area_types.append(comment.split("-")[2])
+    if len(area_types):
+        return area_types
+    return ALL_AREAS
 
 
 AREA_PARSE_DICT = {
@@ -353,7 +370,10 @@ def add_button(context: Context, name: str, textname: str):
         context.scene.stb.remove(index)
     new = context.scene.stb.add()  # Create new Instance
     new.name = check_for_duplicates(get_all_button_names(context), name)
-    return add_areas_and_props(new, text)
+    fails = add_areas_and_props(new, text)
+    if new.panel not in panels.panel_names:
+        panels.register_button_panel(new.panel)
+    return fails
 
 
 def remove_button(context: Context, delete_file: bool, delete_text: bool):
@@ -361,6 +381,7 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
     name = STB_pref.selected_button
     stb = context.scene.stb
     button = stb[name]
+
     if delete_file:
         os.remove(os.path.join(
             os.path.dirname(__file__),
@@ -376,6 +397,9 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
     stb.remove(index)
     if index - 1 >= 0:
         stb[index - 1].selected = True
+    panel_names = set(button.panel for button in stb)
+    for panel in set(panels.panel_names).difference(panel_names):
+        panels.unregister_button_panel(panel)
 
 
 def create_fail_message(fails: tuple[list, list]):
@@ -406,7 +430,8 @@ def load_from_texteditor(op, context: Context) -> tuple[list, list]:
                 btnFails[0].append(txt.txt_name)
                 btnFails[1].append(reload_button_text(
                     context.scene.stb[btn_index],
-                    bpy.data.texts[txt.txt_name].as_string()
+                    bpy.data.texts[txt.txt_name].as_string(),
+                    context.scene
                 ))
                 if STB_pref.autosave:
                     save_text(bpy.data.texts[txt.txt_name], txt.txt_name)
@@ -422,7 +447,8 @@ def load_from_texteditor(op, context: Context) -> tuple[list, list]:
             btnFails[0].append(txt.txt_name)
             btnFails[1].append(reload_button_text(
                 context.scene.stb[btn_index],
-                bpy.data.texts[txt.txt_name].as_string()
+                bpy.data.texts[txt.txt_name].as_string(),
+                context.scene
             ))
             if STB_pref.autosave:
                 save_text(bpy.data.texts[txt.txt_name], txt.txt_name)
@@ -435,10 +461,17 @@ def load_add_button(name):
     bpy.ops.stb.addbutton(show_skip=True, name=name, text_list=name)
 
 
-def reload_button_text(button: STB_button_properties, text: Text) -> tuple[list, list]:
+def reload_button_text(button: STB_button_properties, text: Text, scene: Scene) -> tuple[list, list]:
     delete_vector_props(button)
     delete_list_prop(button)
-    return add_areas_and_props(button, text)
+    fails = add_areas_and_props(button, text)
+
+    panel_names = set(button.panel for button in scene.stb)
+    for panel in set(panels.panel_names).difference(panel_names):
+        panels.unregister_button_panel(panel)
+    for panel in panel_names.difference(panels.panel_names):
+        panels.register_button_panel(panel)
+    return fails
 
 
 Property_type = {
@@ -451,6 +484,8 @@ def add_areas_and_props(button: STB_button_properties, text: str) -> tuple[list,
     button.areas.clear()  # Clear Area and Prop
     for prop in Property_type:
         getattr(button, "%sProps" % prop).clear()
+
+    button.panel = get_panel(text)
 
     areas = get_areas(text)  # Get Areas
     failed_areas = []

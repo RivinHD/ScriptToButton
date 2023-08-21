@@ -1,6 +1,6 @@
 import bpy
 from bpy.app.handlers import persistent
-from . import properties, preferences, update, operators, functions, panels
+from . import properties, preferences, update, operators, functions, panels, dynamic_panels, menus
 
 bl_info = {
     "name": "Script To Button",
@@ -12,6 +12,8 @@ bl_info = {
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
     "tracker_url": "https://github.com/RivinHD/ScriptToButton/issues"
 }
+
+keymaps = {}
 
 
 @persistent
@@ -38,7 +40,16 @@ def register():
     operators.register()
     update.register()
     panels.register()
+    menus.register()
     bpy.app.handlers.load_post.append(load_saves)
+
+    addon = bpy.context.window_manager.keyconfigs.addon
+    if addon:
+        km = addon.keymaps.new(name='Screen')
+        keymaps['default'] = km
+        items = km.keymap_items
+        kmi = items.new("wm.call_menu", 'Y', 'PRESS', shift=True, alt=True)
+        kmi.properties.name = "STB_MT_ButtonMenu"
 
 
 def unregister():
@@ -47,4 +58,6 @@ def unregister():
     operators.unregister()
     update.unregister()
     panels.unregister()
+    dynamic_panels.unregister()
+    menus.unregister()
     bpy.app.handlers.load_post.remove(load_saves)

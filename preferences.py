@@ -2,6 +2,10 @@ import bpy
 from bpy.types import AddonPreferences, Context
 from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty, IntProperty
 from .functions import get_preferences
+import rna_keymap_ui
+
+keymaps = {}
+keymap_items = []
 
 
 class STB_preferences(AddonPreferences):
@@ -77,11 +81,36 @@ class STB_preferences(AddonPreferences):
             col.label(
                 text="You are using the latest Version (%s)" % STB_pref.version
             )
+        layout.separator(factor=0.8)
+        col = layout.column()
+        kc = bpy.context.window_manager.keyconfigs.user
+        for addon_keymap in keymaps.values():
+            km = kc.keymaps[addon_keymap.name].active()
+            col.context_pointer_set("keymap", km)
+            for kmi in km.keymap_items:
+                if not any(kmi.name == item.name and kmi.idname == item.idname for item in keymap_items):
+                    continue
+                rna_keymap_ui.draw_kmi(kc.keymaps, kc, km, kmi, col, 0)
 
 
 def register():
     bpy.utils.register_class(STB_preferences)
 
+    addon = bpy.context.window_manager.keyconfigs.addon
+    if addon:
+        km = addon.keymaps.new(name='Screen')
+        keymaps['default'] = km
+        items = km.keymap_items
+        kmi = items.new("wm.call_menu", 'Y', 'PRESS', shift=True, alt=True)
+        kmi.properties.name = "STB_MT_ButtonMenu"
+        keymap_items.append(kmi)
+
 
 def unregister():
     bpy.utils.unregister_class(STB_preferences)
+    addon = bpy.context.window_manager.keyconfigs.addon
+    if not addon:
+        return
+    for km in keymaps.values():
+        if addon.keymaps.get(km.name):
+            addon.keymaps.remove(km)

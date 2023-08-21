@@ -11,11 +11,11 @@ ui_space_types = [
 ]  # blender spaces with UI region
 
 
-def panel_factory(spaceType):
-    class STB_PT_Controls(Panel):
-        bl_idname = "STB_PT_Controls_%s" % spaceType
-        bl_label = "Controls"
-        bl_space_type = spaceType
+def panel_factory(space_type):
+    class STB_PT_ScriptToButton(Panel):
+        bl_idname = "STB_PT_ScriptToButton_%s" % space_type
+        bl_label = "Script To Button"
+        bl_space_type = space_type
         bl_region_type = "UI"
         bl_category = "Script To Button"
 
@@ -55,40 +55,16 @@ def panel_factory(spaceType):
             row = col.row(align=True)
             row.operator("stb.export", text="Export", icon='EXPORT')
             row.operator("stb.import", text="Import", icon='IMPORT')
-    STB_PT_Controls.__name__ = "STB_PT_Controls_%s" % spaceType
-
-    class STB_PT_Buttons(Panel):
-        bl_idname = "STB_PT_Buttons_%s" % spaceType
-        bl_label = "Buttons"
-        bl_space_type = spaceType
-        bl_region_type = "UI"
-        bl_category = "Script To Button"
-
-        def draw(self, context):
-            layout = self.layout
-            for button in context.scene.stb:
-                area = context.area.ui_type
-                if area not in button.areas:
-                    continue
-                row = layout.row(align=True)
-                row.prop(
-                    button, 'selected',
-                    toggle=True,
-                    text="",
-                    icon='RADIOBUT_ON' if button.selected else 'RADIOBUT_OFF'
-                )
-                row.operator(
-                    "stb.script_button",
-                    text=button.name
-                ).name = button.name
-    STB_PT_Buttons.__name__ = "STB_PT_Buttons_%s" % spaceType
+    STB_PT_ScriptToButton.__name__ = "STB_PT_ScriptToButton_%s" % space_type
 
     class STB_PT_Properties(Panel):
-        bl_idname = "STB_PT_Properties_%s" % spaceType
+        bl_idname = "STB_PT_Properties_%s" % space_type
         bl_label = "Properties"
-        bl_space_type = spaceType
+        bl_space_type = space_type
         bl_region_type = "UI"
         bl_category = "Script To Button"
+        bl_parent_id = "STB_PT_ScriptToButton_%s" % space_type
+        bl_order = 2147483647  # max size
 
         def draw(self, context):
             layout = self.layout
@@ -104,12 +80,11 @@ def panel_factory(spaceType):
                     layout.label(text="No Properties")
                     return
                 functions.draw_sort(sort, back, layout)
-    STB_PT_Properties.__name__ = "STB_PT_Properties_%s" % spaceType
+    STB_PT_Properties.__name__ = "STB_PT_Properties_%s" % space_type
 
     global classes
     classes += [
-        STB_PT_Controls,
-        STB_PT_Buttons,
+        STB_PT_ScriptToButton,
         STB_PT_Properties
     ]
 

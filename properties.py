@@ -205,6 +205,7 @@ class STB_button_properties(PropertyGroup):
     ListProps: CollectionProperty(type=STB_property_list)
     ObjectProps: CollectionProperty(type=STB_property_object)
     areas: CollectionProperty(type=STB_button_area)
+    panel: StringProperty(default="Button")
 
 
 class STB_text_property(PropertyGroup):
