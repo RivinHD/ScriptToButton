@@ -243,6 +243,19 @@ class STB_export_button(PropertyGroup):
     )
 
 
+class STB_add_property_item(PropertyGroup):
+    position: IntProperty()
+    line: StringProperty()
+    value: StringProperty()
+    type: StringProperty()
+    
+class STB_edit_property_item(PropertyGroup):
+    name: StringProperty()
+    line: IntProperty()
+    linename: StringProperty()
+    use_delete: BoolProperty(default=False)
+
+
 classes = [
     STB_property_string,
     STB_property_int,
@@ -258,7 +271,9 @@ classes = [
     STB_button_area,
     STB_button_properties,
     STB_text_property,
-    STB_export_button
+    STB_export_button,
+    STB_add_property_item,
+    STB_edit_property_item
 ]
 
 

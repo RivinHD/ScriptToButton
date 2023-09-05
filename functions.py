@@ -3,7 +3,7 @@ import bpy
 import zipfile
 from bpy.props import StringProperty, PointerProperty
 from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences, Scene
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 import functools
 from .import dynamic_panels as panels
 if TYPE_CHECKING:
@@ -144,7 +144,7 @@ AREA_PARSE_DICT = {
 }
 
 
-def area_parser(area: str) -> str | bool:
+def area_parser(area: str) -> Union[str, bool]:
     return AREA_PARSE_DICT.get(area, False)
 
 
@@ -153,7 +153,7 @@ def get_props(text: str) -> list:
     props = []
     for i in range(len(lines)):
         current_line = lines[i]
-        if not current_line.strip().startswith("#STB-Input-"):
+        if not current_line.strip().startswith("#STB-"):
             continue
         next_line = lines[i + 1]
         if next_line.startswith("#"):
@@ -162,6 +162,8 @@ def get_props(text: str) -> list:
         line_name = next_line.split("=")[0]
         value = next_line.split("=")[1].split("#")[0]
         for input in inputs:
+            if not input.startswith("#STB-Input"):
+                continue
             split = input.split("-")
             props.append({
                 "name": line_name.strip(),
@@ -219,6 +221,7 @@ def add_prop(button: STB_button_properties, property) -> bool:
              and not (
                 is_type
                 and all(map(lambda x: isinstance(x, VECTOR_TYPE[property_type]), value))
+                and len(value) >= 1
                 and len(value) <= 32)
              )):  # Check types
         return False
@@ -461,7 +464,7 @@ def load_add_button(name):
     bpy.ops.stb.addbutton(show_skip=True, name=name, text_list=name)
 
 
-def reload_button_text(button: STB_button_properties, text: Text, scene: Scene) -> tuple[list, list]:
+def reload_button_text(button: STB_button_properties, text: str, scene: Scene) -> tuple[list, list]:
     delete_vector_props(button)
     delete_list_prop(button)
     fails = add_areas_and_props(button, text)
@@ -900,3 +903,85 @@ def draw_list_prop(layout: UILayout, props):
 
 def draw_prop_search(layout: UILayout, prop, context: Context, context_prop):
     layout.prop_search(prop, 'prop', context, context_prop, text=prop.name)
+
+
+PY_TYPE_TO_BLENDER_TYPE = {
+    str: 'String',
+    int: 'Int',
+    float: 'Float',
+    bool: 'Bool',
+    bpy.types.Object: 'Object',
+}
+
+
+def get_all_variables(text: str) -> list:
+    variables = []
+    last_line = ""
+    for i, line in enumerate(text.splitlines()):
+        line = line.strip()
+        split = line.split("=")
+        if len(split) != 2 or line.startswith("#") or last_line.startswith("#STB-Input"):
+            last_line = line
+            continue
+
+        name, value = split
+        name = name.strip()
+        if "," in name or " " in name or name == "":
+            last_line = line
+            continue
+
+        value = value.strip()
+        try:
+            evaluated = eval(value)
+        except Exception:
+            last_line = line
+            continue
+        if isinstance(evaluated, (bool, str, int, float, bpy.types.Object)):
+            variables.append((
+                i,
+                line,
+                value,
+                PY_TYPE_TO_BLENDER_TYPE[type(evaluated)]
+            ))
+        elif isinstance(evaluated, (tuple, list)) and len(evaluated) > 0 and value[0] in "[(":
+            # ENUM
+            if (len(evaluated) == 2
+                    and isinstance(evaluated[1], (list, tuple))
+                    and isinstance(evaluated[0], str)
+                    and all(map(lambda x: isinstance(x, str), evaluated[1]))):
+                variables.append((i, line, value, "Enum"))
+                last_line = line
+                continue
+            # VECTOR
+            is_vector = False
+            for py_type, bl_type in {(bool, "BoolVector"), (int, "IntVector"), (float, "FloatVector")}:
+                if (all(map(lambda x: isinstance(x, py_type), evaluated))
+                        and len(evaluated) <= 32):
+                    is_vector = True
+                    variables.append((i, line, value, bl_type))
+                    break
+            if is_vector:
+                last_line = line
+                continue
+            # LIST
+            variables.append((i, line, value, "List"))
+        last_line = line
+    return variables
+
+
+def get_all_properties(button: STB_button_properties) -> tuple:
+    return sorted(
+        (
+            *button.StringProps,
+            *button.IntProps,
+            *button.FloatProps,
+            *button.BoolProps,
+            *button.EnumProps,
+            *button.ObjectProps,
+            *button.ListProps,
+            *button.IntVectorProps,
+            *button.FloatVectorProps,
+            *button.BoolVectorProps
+        ),
+        key=lambda x: x.line
+    )

@@ -81,6 +81,7 @@ def unregister_register_button_panel(name: str, register: bool):
         @classmethod
         def poll(self, context: Context) -> bool:
             stb = context.scene.stb
+            area = context.area
             if area is None:
                 return False
             area = context.area.ui_type

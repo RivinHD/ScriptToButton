@@ -38,7 +38,7 @@ def panel_factory(space_type):
                 row2.scale_x = 1.2
                 row2.operator("stb.load_single_button", text="", icon='TEXT')
                 row2.operator("stb.reload", text="", icon='FILE_REFRESH')
-                row2.operator("stb.rename", text="", icon='GREASEPENCIL')
+                row2.operator("stb.edit", text="", icon='GREASEPENCIL')
             else:
                 row = col.row(align=True)
                 row.operator("stb.load", text="Load")
@@ -51,7 +51,7 @@ def panel_factory(space_type):
                 )
                 row = col.row(align=True)
                 row.operator("stb.reload", text="Reload", icon='FILE_REFRESH')
-                row.operator("stb.rename", text="Rename", icon='GREASEPENCIL')
+                row.operator("stb.edit", text="Rename", icon='GREASEPENCIL')
             row = col.row(align=True)
             row.operator("stb.export", text="Export", icon='EXPORT')
             row.operator("stb.import", text="Import", icon='IMPORT')
@@ -65,6 +65,11 @@ def panel_factory(space_type):
         bl_category = "Script To Button"
         bl_parent_id = "STB_PT_ScriptToButton_%s" % space_type
         bl_order = 2147483647  # max size
+        
+        def draw_header(self, context: Context):
+            layout = self.layout
+            layout.alignment = 'RIGHT'
+            layout.operator('stb.add_property', text="", icon='ADD')
 
         def draw(self, context):
             layout = self.layout

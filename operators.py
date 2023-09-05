@@ -1,3 +1,4 @@
+import typing
 import bpy
 from bpy.types import Operator, Context, Event, PropertyGroup
 from bpy.props import StringProperty, EnumProperty, BoolProperty, CollectionProperty
@@ -486,23 +487,93 @@ class STB_OT_Import(Operator, ImportHelper):
         return {"FINISHED"}
 
 
-class STB_OT_Rename(Operator):
-    bl_idname = "stb.rename"
-    bl_label = "Rename"
-    bl_description = "Rename the seleccted Button"
+class STB_OT_Edit(Operator):
+    bl_idname = "stb.edit"
+    bl_label = "Edit"
+    bl_description = "Edit the selected Button"
     bl_options = {"UNDO"}
 
     name: StringProperty(name="Name")
+    stb_properties: CollectionProperty(type=properties.STB_edit_property_item)
 
     def draw(self, context: Context):
         layout = self.layout
-        layout.prop(self, 'name', text="Name")
+        layout.prop(self, 'name')
+
+        layout.separator(factor=0.5)
+        layout.label(text="Properties")
+        box = layout.box()
+        for prop in filter(lambda x: not x.use_delete, self.stb_properties):
+            row = box.row()
+            row.label(text=f"{prop.name} [Ln {prop.line}]")
+            row.prop(prop, 'use_delete', icon='X', icon_only=True)
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
+        STB_pref = get_preferences(context)
+        stb = context.scene.stb
+        button = stb[STB_pref.selected_button]
+        self.name = button.name
+        self.stb_properties.clear()
+        for prop in functions.get_all_properties(button):
+            new = self.stb_properties.add()
+            new.name = prop.name
+            new.line = prop.line
+            new.linename = prop.linename
+        return context.window_manager.invoke_props_dialog(self, width=250)
 
     def execute(self, context):
         functions.rename(context, self.name)
+
+        STB_pref = get_preferences(context)
+        stb = context.scene.stb
+        property_changed = False
+        button = stb[STB_pref.selected_button]
+
+        text_index = bpy.data.texts.find(STB_pref.selected_button)
+        if text_index == -1:
+            functions.get_text(STB_pref.selected_button)
+            text = bpy.data.texts[STB_pref.selected_button]
+        else:
+            text = bpy.data.texts[text_index]
+        lines = [line.body for line in text.lines]
+
+        for prop in filter(lambda x: x.use_delete, self.stb_properties):
+            property_changed = True
+            line: str = lines[prop.line - 1]
+            line_start = line.find("#STB")
+            if line_start == -1:
+                continue
+            
+            if (init_start_position := line.find("#STB-InitValue-")) != -1:
+                init_start_position += len("#STB-InitValue-")
+                init_end_position = line.find("-END", init_start_position)
+                init_value = line[init_start_position: init_end_position]
+                lines[prop.line] = "%s= %s" %(prop.linename, init_value)
+                
+            and_position = line.find("///", line_start)
+            end_position = line.find("#STB", and_position)
+            while (and_next := line.find("///", end_position)) != -1 and (end_next := line.find("#STB", and_next)) != -1:
+                and_position = and_next
+                end_position = end_next
+
+            if and_position != -1 and end_position != -1:
+                line_end = line.find(" ", end_position)
+            else:
+                line_end = line.find(" ", line_start)
+
+            if line_end == -1:
+                line = ""
+            else:
+                line = line[:line_start] + line[line_end:]
+
+            lines[prop.line - 1] = line
+            if line.strip() == "":
+                lines.pop(prop.line - 1)
+
+        if property_changed:
+            text.clear()
+            text.write("\n".join(lines))
+            bpy.ops.stb.reload()
         context.area.tag_redraw()
         return {"FINISHED"}
 
@@ -520,6 +591,83 @@ class STB_OT_LoadSingleButton(Operator):
         return {"FINISHED"}
 
 
+class STB_OT_AddProperty(Operator):
+    bl_idname = "stb.add_property"
+    bl_label = "Add Property"
+    bl_description = "Add a variable from the script as a property"
+
+    text_variables: CollectionProperty(
+        type=properties.STB_add_property_item,
+        options={'HIDDEN'}
+    )
+
+    def text_properties_items(self, context):
+        return [
+            (str(i), f"{item.line} [Ln {item.position}]", "")
+            for i, item in enumerate(self.text_variables)
+        ]
+    text_properties: EnumProperty(
+        items=text_properties_items,
+        options={'HIDDEN'}
+    )
+    space: EnumProperty(
+        items=[
+            ("Panel", "Panel", "Show this property in the Panel"),
+            ("Dialog", "Dialog",
+             "Show this property in a Dialog when the script is executed"),
+            ("PanelDialog", "Panel & Dialog",
+             "Show this property in the Panel and Dialog")
+        ],
+        options={'HIDDEN'}
+    )
+
+    def invoke(self, context: Context, event: Event):
+        STB_pref = get_preferences(context)
+        text_index = bpy.data.texts.find(STB_pref.selected_button)
+        if text_index == -1:
+            functions.get_text(STB_pref.selected_button)
+            text = bpy.data.texts[STB_pref.selected_button]
+        else:
+            text = bpy.data.texts[text_index]
+        items = self.text_properties_items(context)
+        if len(items) != 0:
+            self.text_properties = items[0][0]
+        self.text_variables.clear()
+        for position, line, value, bl_type in functions.get_all_variables(text.as_string()):
+            var = self.text_variables.add()
+            var.position = position
+            var.line = line
+            var.value = value
+            var.type = bl_type
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context: Context):
+        layout = self.layout
+        if len(self.text_properties_items(context)) == 0:
+            layout.label(text="No Property to add")
+            return
+        layout.prop(self, 'text_properties', text="Property")
+        layout.prop(self, 'space', text="Space")
+
+    def execute(self, context: Context):
+        if self.text_properties == "":
+            return {'CANCELLED'}
+        STB_pref = get_preferences(context)
+        text = bpy.data.texts[STB_pref.selected_button]
+        index = int(self.text_properties)
+        item = self.text_variables[index]
+        lines = [line.body for line in text.lines]
+        if self.space == "PanelDialog":
+            insert_comment = f"#STB-Input-Panel-{item.type} /// #STB-Input-Dialog-{item.type} /// #STB-InitValue-{item.value}-END"
+        else:
+            insert_comment = f"#STB-Input-{self.space}-{item.type} /// #STB-InitValue-{item.value}-END"
+        lines.insert(item.position, insert_comment)
+        text.clear()
+        text.write("\n".join(lines))
+        bpy.ops.stb.reload()
+        return {'FINISHED'}
+
+
 classes = [
     STB_OT_AddButton,
     STB_OT_ScriptButton,
@@ -529,8 +677,9 @@ classes = [
     STB_OT_Save,
     STB_OT_Export,
     STB_OT_Import,
-    STB_OT_Rename,
-    STB_OT_LoadSingleButton
+    STB_OT_Edit,
+    STB_OT_LoadSingleButton,
+    STB_OT_AddProperty
 ]
 
 
