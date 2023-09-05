@@ -506,7 +506,7 @@ class STB_OT_Edit(Operator):
         for prop in filter(lambda x: not x.use_delete, self.stb_properties):
             row = box.row()
             row.label(text=f"{prop.name} [Ln {prop.line}]")
-            row.prop(prop, 'use_delete', icon='X', icon_only=True)
+            row.prop(prop, 'use_delete', icon='X', icon_only=True, emboss=False)
 
     def invoke(self, context, event):
         STB_pref = get_preferences(context)
