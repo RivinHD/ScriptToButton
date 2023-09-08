@@ -5,8 +5,8 @@ from . import properties, preferences, update, operators, functions, panels, dyn
 bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
-    "blender": (3, 0, 1),
-    "version": (2, 1, 6),
+    "blender": (3, 3, 10),
+    "version": (2, 2, 0),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
