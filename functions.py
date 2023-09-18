@@ -1,6 +1,7 @@
 import os
 import bpy
 import zipfile
+import uuid
 from bpy.props import StringProperty, PointerProperty
 from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences, Scene
 from typing import TYPE_CHECKING, Union
@@ -90,7 +91,7 @@ def load(context: Context) -> tuple[list, list]:
     return btnFails
 
 
-def get_all_button_names(context: Context) -> list:
+def get_all_button_names(context: Context) -> set:
     return set(button.name for button in context.scene.stb)
 
 
@@ -132,6 +133,7 @@ AREA_PARSE_DICT = {
     "Image_Editor": "VIEW",
     "Compositor": "CompositorNodeTree",
     "Texture_Node_Editor": "TextureNodeTree",
+    "Geomerty_Node_Editor": "GeometryNodeTree",
     "Shader_Editor": "ShaderNodeTree",
     "Video_Sequencer": "SEQUENCE_EDITOR",
     "Movie_Clip_Editor": "CLIP_EDITOR",
@@ -152,8 +154,8 @@ def get_props(text: str) -> list:
     lines = text.splitlines()
     props = []
     for i in range(len(lines)):
-        current_line = lines[i]
-        if not current_line.strip().startswith("#STB-"):
+        current_line = lines[i].strip()
+        if not current_line.startswith("#STB-") or current_line.startswith("#STB-Area"):
             continue
         next_line = lines[i + 1]
         if next_line.startswith("#"):
@@ -392,7 +394,7 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
             "%s.py" % name
         ))
     if delete_text:
-        if index := bpy.data.texts.find(name) != -1:
+        if (index := bpy.data.texts.find(name)) != -1:
             bpy.data.texts.remove(bpy.data.texts[index])
     delete_vector_props(button)
     delete_list_prop(button)
@@ -527,18 +529,19 @@ def update_vector_property(self, context):
 
 def create_vector_prop(size: int, name: str, type: str, back_address: str):
     property_func = getattr(bpy.props, "%sProperty" % type)
+    vec_id = uuid.uuid5(uuid.NAMESPACE_OID, name).hex
 
     class VectorProp(PropertyGroup):
         prop: property_func(size=size, update=update_vector_property)
         address: StringProperty(default=back_address)
-    VectorProp.__name__ = "VectorProp_%s_%s" % (type, name)
+    VectorProp.__name__ = "VectorProp_%s_%s" % (type, vec_id)
     bpy.utils.register_class(VectorProp)
     setattr(
         bpy.types.Scene,
-        "stb_%sproperty_%s" % (type.lower(), name),
+        "stb_%sproperty_%s" % (type.lower(), vec_id),
         PointerProperty(type=VectorProp)
     )
-    return "bpy.context.scene.stb_%sproperty_%s" % (type.lower(), name)
+    return "bpy.context.scene.stb_%sproperty_%s" % (type.lower(), vec_id)
 
 
 def unregister_vector():
@@ -631,7 +634,6 @@ def export(mode, selections: list, export_path: str) -> None:
 
 
 def import_zip(filepath: str, context: Context) -> tuple[list, list]:
-    STB_pref = get_preferences(context)
     btnFails = ([], [])
     with zipfile.ZipFile(filepath, 'r') as zip_out:
         filepaths = []
@@ -640,17 +642,16 @@ def import_zip(filepath: str, context: Context) -> tuple[list, list]:
                 filepaths.append(i)
         for filepath in filepaths:
             txt = zip_out.read(filepath).decode("utf-8").replace("\r", "")
-            Fail = import_button(filepath, context, STB_pref, txt)
+            Fail = import_button(filepath, context, txt)
             btnFails[0].extend(Fail[0])
             btnFails[1].append(Fail[1])
         return btnFails
 
 
 def import_py(filepath: str, context: Context) -> tuple[list[str], tuple[list, list]]:
-    STB_pref = get_preferences(context)
     with open(filepath, 'r', encoding='utf8') as file:
         txt = file.read()
-        return import_button(filepath, context, STB_pref, txt)
+        return import_button(filepath, context, txt)
 
 
 def import_button(
@@ -658,13 +659,14 @@ def import_button(
         context: Context,
         txt: str) -> tuple[list[str], tuple[list, list]]:
     STB_pref = get_preferences(context)
+    stb = context.scene.stb
     name = check_for_duplicates(
-        [i.name for i in bpy.data.texts],
+        get_all_button_names(context),
         os.path.splitext(os.path.basename(filepath))[0]
     )
     bpy.data.texts.new(name)
     bpy.data.texts[name].write(txt)
-    button: STB_button_properties = context.scene.stb.add()
+    button: STB_button_properties = stb.add()
     button.name = name
     button.selected = True
 
@@ -708,7 +710,7 @@ def rename(context: Context, name: str):
     old_path = os.path.join(directory, "Storage", "%s.py" %
                             STB_pref.selected_button)
     if name != button.name:
-        name = check_for_duplicates(get_all_button_names(context), name)
+        name = check_for_duplicates(get_all_button_names(context).difference([button.name]), name)
     button.name = name
     button.selected = True
     text.name = name
