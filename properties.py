@@ -6,6 +6,7 @@ from bpy.props import (
 )
 from .functions import update_text
 from . import functions
+from contextlib import suppress
 
 classes = []
 
@@ -248,12 +249,20 @@ class STB_add_property_item(PropertyGroup):
     line: StringProperty()
     value: StringProperty()
     type: StringProperty()
-    
+
+
 class STB_edit_property_item(PropertyGroup):
     name: StringProperty()
     line: IntProperty()
     linename: StringProperty()
     use_delete: BoolProperty(default=False)
+
+
+class STB_edit_area_item(PropertyGroup):
+    name: StringProperty()
+    label: StringProperty()
+    icon: IntProperty()
+    delete: BoolProperty(default=False)
 
 
 classes = [
@@ -273,7 +282,8 @@ classes = [
     STB_text_property,
     STB_export_button,
     STB_add_property_item,
-    STB_edit_property_item
+    STB_edit_property_item,
+    STB_edit_area_item
 ]
 
 
@@ -286,11 +296,14 @@ def register():
 def unregister():
     for ele in bpy.context.scene.stb:
         for intvec in ele.IntVectorProps:
-            exec("del bpy.types.Scene.%s" % intvec.address.split(".")[-1])
+            with suppress(AttributeError):
+                exec("del bpy.types.Scene.%s" % intvec.address.split(".")[-1])
         for floatvec in ele.FloatVectorProps:
-            exec("del bpy.types.Scene.%s" % floatvec.address.split(".")[-1])
+            with suppress(AttributeError):
+                exec("del bpy.types.Scene.%s" % floatvec.address.split(".")[-1])
         for boolvec in ele.BoolVectorProps:
-            exec("del bpy.types.Scene.%s" % boolvec.address.split(".")[-1])
+            with suppress(AttributeError):
+                exec("del bpy.types.Scene.%s" % boolvec.address.split(".")[-1])
     for cls in classes:
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.stb

@@ -1,6 +1,6 @@
 import typing
 import bpy
-from bpy.types import Operator, Context, Event, PropertyGroup
+from bpy.types import Operator, Context, Event, PropertyGroup, UILayout
 from bpy.props import StringProperty, EnumProperty, BoolProperty, CollectionProperty
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from . functions import get_preferences
@@ -423,7 +423,7 @@ class STB_OT_Export(Operator, ExportHelper):
                 return {'CANCELLED'}
         functions.export(
             self.mode,
-            map(lambda x: x.use, self.export_buttons),
+            filter(lambda x: x.use, self.export_buttons),
             self.filepath
         )
         return {"FINISHED"}
@@ -493,20 +493,100 @@ class STB_OT_Edit(Operator):
     bl_description = "Edit the selected Button"
     bl_options = {"UNDO"}
 
+    area_items = [  # (identifier, name, description, icon, value)
+        ('', 'General', '', ''),
+        ('3D_Viewport', '3D Viewport', '', 'VIEW3D'),
+        ('Image_Editor', 'Image Editor', '', 'IMAGE'),
+        ('UV_Editor', 'UV Editor', '', 'UV'),
+        ('Compositor', 'Compositor', '', 'NODE_COMPOSITING'),
+        ('Texture_Node_Editor', 'Texture Node Editor', '', 'NODE_TEXTURE'),
+        ('Geomerty_Node_Editor', 'Geomerty Node Editor', '', 'NODETREE'),
+        ('Shader_Editor', 'Shader Editor', '', 'NODE_MATERIAL'),
+        ('Video_Sequencer', 'Video Sequencer', '', 'SEQUENCE'),
+        ('Movie_Clip_Editor', 'Movie Clip Editor', '', 'TRACKER'),
+
+        ('', 'Animation', '', ''),
+        ('Dope_Sheet', 'Dope Sheet', '', 'ACTION'),
+        ('Timeline', 'Timeline', '', 'TIME'),
+        ('Graph_Editor', 'Graph Editor', '', 'GRAPH'),
+        ('Drivers', 'Drivers', '', 'DRIVER'),
+        ('Nonlinear_Animation', 'Nonlinear Animation', '', 'NLA'),
+
+        ('', 'Scripting', '', ''),
+        ('Text_Editor', 'Text Editor', '', 'TEXT')
+    ]
+
     name: StringProperty(name="Name")
     stb_properties: CollectionProperty(type=properties.STB_edit_property_item)
+
+    def items_stb_select_area(self, context: Context):
+        for item in self.stb_areas:
+            if item.delete:
+                self.stb_areas.remove(self.stb_areas.find(item.name))
+        used_areas = set(area.name for area in self.stb_areas)
+        areas = []
+        for i, (identifier, name, description, icon) in enumerate(STB_OT_Edit.area_items):
+            if identifier in used_areas:
+                continue
+            areas.append((
+                identifier,
+                name,
+                description,
+                icon,
+                i * (identifier != '') - 1
+            ))
+        return areas
+    stb_select_area: EnumProperty(items=items_stb_select_area, default=0)
+    stb_areas: CollectionProperty(type=properties.STB_edit_area_item)
+
+    def get_add_area(self):
+        return False
+
+    def set_add_area(self, value):
+        identifier = self.stb_select_area
+        icon = UILayout.enum_item_icon(self, 'stb_select_area', identifier)
+        label = UILayout.enum_item_name(self, 'stb_select_area', identifier)
+        if identifier == '':
+            return
+        new = self.stb_areas.add()
+        new.name = identifier
+        new.label = label
+        new.icon = icon
+        items = STB_OT_Edit.items_stb_select_area(self, bpy.context)
+        for item in items:
+            if item[0] == '':
+                continue
+            self.stb_select_area = item[0]
+            break
+    add_area: BoolProperty(default=False, get=get_add_area, set=set_add_area)
 
     def draw(self, context: Context):
         layout = self.layout
         layout.prop(self, 'name')
 
         layout.separator(factor=0.5)
-        layout.label(text="Properties")
+        layout.label(text="Areas")
+        row = layout.row(align=True)
+        row.prop(self, 'stb_select_area')
+        row.prop(self, 'add_area', icon="ADD", icon_only=True)
         box = layout.box()
-        for prop in filter(lambda x: not x.use_delete, self.stb_properties):
-            row = box.row()
-            row.label(text=f"{prop.name} [Ln {prop.line}]")
-            row.prop(prop, 'use_delete', icon='X', icon_only=True, emboss=False)
+        if len(self.stb_areas):
+            for area in filter(lambda x: not x.delete, self.stb_areas):
+                row = box.row()
+                row.label(text=area.label, icon_value=area.icon)
+                row.prop(area, 'delete', icon='X', icon_only=True, emboss=False)
+        else:
+            box.label(text="All Areas", icon='RESTRICT_COLOR_ON')
+
+        properties = list(filter(lambda x: not x.use_delete, self.stb_properties))
+        if len(properties):
+            layout.separator(factor=0.5)
+            layout.label(text="Properties")
+            box = layout.box()
+            for prop in properties:
+                row = box.row()
+                row.label(text=f"{prop.name} [Ln {prop.line}]")
+                row.prop(prop, 'use_delete', icon='X', icon_only=True, emboss=False)
 
     def invoke(self, context, event):
         STB_pref = get_preferences(context)
@@ -514,6 +594,7 @@ class STB_OT_Edit(Operator):
         button = stb[STB_pref.selected_button]
         self.name = button.name
         self.stb_properties.clear()
+        self.stb_areas.clear()
         for prop in functions.get_all_properties(button):
             new = self.stb_properties.add()
             new.name = prop.name
@@ -525,9 +606,7 @@ class STB_OT_Edit(Operator):
         functions.rename(context, self.name)
 
         STB_pref = get_preferences(context)
-        stb = context.scene.stb
         property_changed = False
-        button = stb[STB_pref.selected_button]
 
         text_index = bpy.data.texts.find(STB_pref.selected_button)
         if text_index == -1:
@@ -537,22 +616,35 @@ class STB_OT_Edit(Operator):
             text = bpy.data.texts[text_index]
         lines = [line.body for line in text.lines]
 
+        if len(self.stb_areas):
+            property_changed = True
+            if lines[0].strip().startswith("#STB"):
+                line = lines[0]
+                line += " /// "
+            else:
+                line = ""
+                lines.insert(0, line)
+            line += " /// ".join(map(lambda x: "#STB-Area-%s" % x.name, self.stb_areas))
+            lines[0] = line
+
+        edited_lines = []
         for prop in filter(lambda x: x.use_delete, self.stb_properties):
             property_changed = True
             line: str = lines[prop.line - 1]
             line_start = line.find("#STB")
             if line_start == -1:
                 continue
-            
+
             if (init_start_position := line.find("#STB-InitValue-")) != -1:
                 init_start_position += len("#STB-InitValue-")
                 init_end_position = line.find("-END", init_start_position)
                 init_value = line[init_start_position: init_end_position]
-                lines[prop.line] = "%s= %s" %(prop.linename, init_value)
-                
+                lines[prop.line] = "%s= %s" % (prop.linename, init_value)
+
             and_position = line.find("///", line_start)
             end_position = line.find("#STB", and_position)
-            while (and_next := line.find("///", end_position)) != -1 and (end_next := line.find("#STB", and_next)) != -1:
+            while ((and_next := line.find("///", end_position)) != -1
+                   and (end_next := line.find("#STB", and_next)) != -1):
                 and_position = and_next
                 end_position = end_next
 
@@ -567,8 +659,12 @@ class STB_OT_Edit(Operator):
                 line = line[:line_start] + line[line_end:]
 
             lines[prop.line - 1] = line
+            edited_lines.append(prop.line - 1)
+
+        for i in sorted(edited_lines, reverse=True):
+            line = lines[i]
             if line.strip() == "":
-                lines.pop(prop.line - 1)
+                lines.pop(i)
 
         if property_changed:
             text.clear()
