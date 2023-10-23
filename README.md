@@ -4,7 +4,7 @@ The add-on saves your scripts so that they can be used in any other Blender proj
 You can also define properties for your script that allow you to use user input in your script.
 
 # Installation
-1. Download the Add-on from GitHub as .zip file
+1. Go on the left side to [Release](https://github.com/RivinHD/ScriptToButton/releases/latest) and download the latest Version `ScriptToButton.zip` at the bottem under Assets.
 1. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
 2. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file
 3. Enable the Add-on
