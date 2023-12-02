@@ -730,8 +730,8 @@ def update_all_props(button: STB_button_properties, context: Context):
         button.ListProps
     ]
     for prop in simple_props:
-        prop.update()
-
+        for item in prop:
+            item.update_prop(context)
     vector_props = [
         *button.IntVectorProps,
         *button.FloatVectorProps,
