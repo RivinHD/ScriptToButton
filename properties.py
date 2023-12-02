@@ -141,6 +141,10 @@ class STB_property_list_item(PropertyGroup):
 
 
 class STB_property_list(STB_property, PropertyGroup):
+    def update_prop(self, context):
+        if len(self.prop) >= 1:
+            self.prop[0].update_prop(context)
+            
     prop: CollectionProperty(type=STB_property_list_item)
 
 
