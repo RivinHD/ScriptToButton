@@ -82,7 +82,8 @@ def load(context: Context) -> tuple[list, list]:
         ))
         if not STB_pref.autoload:
             bpy.data.texts.remove(bpy.data.texts[script])
-    scene.stb[0].selected = True
+    if len(scene.stb) > 0:
+        scene.stb[0].selected = True
     panel_names = set(button.panel for button in scene.stb)
     for panel in set(panels.panel_names).difference(panel_names):
         panels.unregister_button_panel(panel)
