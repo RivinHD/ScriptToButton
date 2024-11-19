@@ -108,7 +108,7 @@ def unregister_register_button_panel(name: str, register: bool):
         panel_names.append(name)
         panel_names.sort()
     else:
-        bpy.utils.register_class(getattr(bpy.types, STB_MT_Buttons.__name__))
+        bpy.utils.unregister_class(getattr(bpy.types, STB_MT_Buttons.__name__))
         panel_names.remove(name)
         panel_names.sort()
 
