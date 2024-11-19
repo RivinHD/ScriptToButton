@@ -116,4 +116,5 @@ def unregister_register_button_panel(name: str, register: bool):
 def unregister():
     for cls in button_classes.values():
         bpy.utils.unregister_class(cls)
+    button_classes.clear()
     panel_names.clear()
