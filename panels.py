@@ -22,11 +22,6 @@ def panel_factory(space_type):
         def draw(self, context: Context):
             layout = self.layout
             STB_pref = get_preferences(context)
-            if STB_pref.auto_update and STB_pref.update:
-                box = layout.box()
-                box.label(
-                    text="A new Version is available (" + STB_pref.version + ")")
-                box.operator("stb.update", text="Update")
             col = layout.column()
             row = col.row(align=True)
             row.operator("stb.add_button", text="Add", icon='ADD')
@@ -65,7 +60,7 @@ def panel_factory(space_type):
         bl_category = "Script To Button"
         bl_parent_id = "STB_PT_ScriptToButton_%s" % space_type
         bl_order = 2147483647  # max size
-        
+
         def draw_header(self, context: Context):
             layout = self.layout
             layout.alignment = 'RIGHT'

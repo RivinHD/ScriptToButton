@@ -44,43 +44,12 @@ class STB_preferences(AddonPreferences):
         return bpy.context.scene.get("stb_button.selected_name", "")
     selected_button: StringProperty(get=get_selected_button, name="INTERNAL")
 
-    update: BoolProperty()
-    version: StringProperty()
-    restart: BoolProperty()
-    auto_update: BoolProperty(
-        default=True,
-        name="Auto Update",
-        description="automatically search for a new update"
-    )
-
     def draw(self, context: Context) -> None:
-        STB_pref = get_preferences(context)
         layout = self.layout
         row = layout.row()
         row.prop(self, 'autosave')
         row.prop(self, 'autoload')
         row.prop(self, 'delete_script_after_run')
-        layout.separator(factor=0.8)
-        col = layout.column()
-        col.prop(STB_pref, 'auto_update')
-        row = col.row()
-        if STB_pref.update:
-            row.operator("stb.update", text="Update")
-            row.operator("stb.release_notes", text="Release Notes")
-        else:
-            row.operator("stb.check_update", text="Check For Updates")
-            if STB_pref.restart:
-                row.operator("stb.show_restart_menu", text="Restart to Finish")
-        if STB_pref.version == '':
-            return
-        if STB_pref.update:
-            col.label(
-                text="A new Version is available (%s)" % STB_pref.version
-            )
-        else:
-            col.label(
-                text="You are using the latest Version (%s)" % STB_pref.version
-            )
         layout.separator(factor=0.8)
         col = layout.column()
         kc = bpy.context.window_manager.keyconfigs.user

@@ -1,12 +1,12 @@
 import bpy
 from bpy.app.handlers import persistent
-from . import properties, preferences, update, operators, functions, panels, dynamic_panels, menus
+from . import properties, preferences, operators, functions, panels, dynamic_panels, menus
 
 bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
-    "blender": (3, 3, 10),
-    "version": (2, 2, 3),
+    "blender": (3, 6, 0),
+    "version": (2, 3, 0),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
@@ -38,7 +38,6 @@ def register():
     preferences.register()
     properties.register()
     operators.register()
-    update.register()
     panels.register()
     menus.register()
     bpy.app.handlers.load_post.append(load_saves)
@@ -56,7 +55,6 @@ def unregister():
     preferences.unregister()
     properties.unregister()
     operators.unregister()
-    update.unregister()
     panels.unregister()
     dynamic_panels.unregister()
     menus.unregister()

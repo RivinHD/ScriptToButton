@@ -178,6 +178,11 @@ class STB_OT_RemoveButton(Operator):
         default=True
     )
 
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
+
     def draw(self, context: Context):
         STB_pref = get_preferences(context)
         layout = self.layout
@@ -220,6 +225,11 @@ class STB_OT_Load(Operator):
         type=properties.STB_text_property,
         name="Texts in Texteditor"
     )
+
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
 
     def draw(self, context: Context):
         layout = self.layout
@@ -277,6 +287,11 @@ class STB_OT_Reload(Operator):
     bl_description = "Reload the linked Text in the Texteditor of the selected Button"
     bl_options = {"REGISTER"}
 
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
+
     def execute(self, context: Context):
         STB_pref = get_preferences(context)
         stb = context.scene.stb
@@ -314,6 +329,11 @@ class STB_OT_Save(Operator):
     bl_idname = "stb.save"
     bl_label = "Save"
     bl_description = "Save all buttons to the Storage"
+
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
 
     def execute(self, context):
         Fails = []
@@ -395,6 +415,11 @@ class STB_OT_Export(Operator, ExportHelper):
     filepath: StringProperty(name="File Path", maxlen=1024, default="")
     directory: StringProperty(name="Folder Path", maxlen=1024, default="")
 
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
+
     def draw(self, context: Context):
         layout = self.layout
         layout.prop(self, 'mode', expand=True)
@@ -440,6 +465,11 @@ class STB_OT_Import(Operator, ImportHelper):
         maxlen=255
     )
     files: CollectionProperty(type=PropertyGroup)
+
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
 
     def execute(self, context: Context):
         not_added_file = []
@@ -518,6 +548,11 @@ class STB_OT_Edit(Operator):
 
     name: StringProperty(name="Name")
     stb_properties: CollectionProperty(type=properties.STB_edit_property_item)
+
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
 
     def items_stb_select_area(self, context: Context):
         for item in self.stb_areas:
@@ -679,6 +714,11 @@ class STB_OT_LoadSingleButton(Operator):
     bl_label = "Load Button"
     bl_description = "Load the script of the selected Button into the Texteditor"
 
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
+
     def execute(self, context: Context):
         STB_pref = get_preferences(context)
         stb = context.scene.stb
@@ -717,6 +757,11 @@ class STB_OT_AddProperty(Operator):
         options={'HIDDEN'}
     )
 
+    @classmethod
+    def poll(cls, context: Context):
+        STB_pref = get_preferences(context)
+        return STB_pref.selected_button != ""
+
     def invoke(self, context: Context, event: Event):
         STB_pref = get_preferences(context)
         text_index = bpy.data.texts.find(STB_pref.selected_button)
@@ -754,7 +799,9 @@ class STB_OT_AddProperty(Operator):
         item = self.text_variables[index]
         lines = [line.body for line in text.lines]
         if self.space == "PanelDialog":
-            insert_comment = f"#STB-Input-Panel-{item.type} /// #STB-Input-Dialog-{item.type} /// #STB-InitValue-{item.value}-END"
+            insert_comment = (
+                f"#STB-Input-Panel-{item.type} /// #STB-Input-Dialog-{item.type} /// #STB-InitValue-"
+                + f"{item.value}-END")
         else:
             insert_comment = f"#STB-Input-{self.space}-{item.type} /// #STB-InitValue-{item.value}-END"
         lines.insert(item.position, insert_comment)
