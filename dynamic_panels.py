@@ -104,11 +104,13 @@ def unregister_register_button_panel(name: str, register: bool):
     STB_MT_Buttons.__name__ = "STB_MT_Buttons_%s" % index
 
     if register:
+        button_classes[STB_MT_Buttons.__name__] = STB_MT_Buttons
         bpy.utils.register_class(STB_MT_Buttons)
         panel_names.append(name)
         panel_names.sort()
     else:
-        bpy.utils.register_class(getattr(bpy.types, STB_MT_Buttons.__name__))
+        bpy.utils.unregister_class(getattr(bpy.types, STB_MT_Buttons.__name__))
+        del button_classes[STB_MT_Buttons.__name__]
         panel_names.remove(name)
         panel_names.sort()
 
@@ -116,4 +118,5 @@ def unregister_register_button_panel(name: str, register: bool):
 def unregister():
     for cls in button_classes.values():
         bpy.utils.unregister_class(cls)
+    button_classes.clear()
     panel_names.clear()
