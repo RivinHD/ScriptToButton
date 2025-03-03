@@ -29,7 +29,14 @@ class STB_property_string(STB_property, PropertyGroup):
             eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
-    prop: StringProperty(update=update_prop)
+    def set_prop(self, value):
+        self["prop"] = value
+        self.update_prop(bpy.context)
+
+    def get_prop(self):
+        return self.get("prop", True)
+
+    prop: StringProperty(set=set_prop, get=get_prop)
 
 
 class STB_property_int(STB_property, PropertyGroup):
@@ -41,7 +48,14 @@ class STB_property_int(STB_property, PropertyGroup):
             eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
-    prop: IntProperty(update=update_prop)
+    def set_prop(self, value):
+        self["prop"] = value
+        self.update_prop(bpy.context)
+
+    def get_prop(self):
+        return self.get("prop", True)
+
+    prop: IntProperty(set=set_prop, get=get_prop)
 
 
 class STB_property_float(STB_property, PropertyGroup):
@@ -53,7 +67,14 @@ class STB_property_float(STB_property, PropertyGroup):
             eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
-    prop: FloatProperty(update=update_prop)
+    def set_prop(self, value):
+        self["prop"] = value
+        self.update_prop(bpy.context)
+
+    def get_prop(self):
+        return self.get("prop", True)
+
+    prop: FloatProperty(set=set_prop, get=get_prop)
 
 
 class STB_property_bool(STB_property, PropertyGroup):
@@ -65,7 +86,14 @@ class STB_property_bool(STB_property, PropertyGroup):
             eval("context.scene.%s" % self.path_from_id().split(".")[0])
         )
 
-    prop: BoolProperty(update=update_prop)
+    def set_prop(self, value):
+        self["prop"] = value
+        self.update_prop(bpy.context)
+
+    def get_prop(self):
+        return self.get("prop", True)
+
+    prop: BoolProperty(set=set_prop, get=get_prop)
 
 
 class STB_enum_item(PropertyGroup):
@@ -144,7 +172,7 @@ class STB_property_list(STB_property, PropertyGroup):
     def update_prop(self, context):
         if len(self.prop) >= 1:
             self.prop[0].update_prop(context)
-            
+
     prop: CollectionProperty(type=STB_property_list_item)
 
 
