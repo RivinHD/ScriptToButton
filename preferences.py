@@ -3,13 +3,14 @@ from bpy.types import AddonPreferences, Context
 from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty, IntProperty
 from .functions import get_preferences
 import rna_keymap_ui
+from . import __package__ as base_package
 
 keymaps = {}
 keymap_items = []
 
 
 class STB_preferences(AddonPreferences):
-    bl_idname = __package__
+    bl_idname = base_package
 
     button_name: StringProperty(
         name="Name",

@@ -7,6 +7,8 @@ from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences, 
 from typing import TYPE_CHECKING, Union
 import functools
 from .import dynamic_panels as panels
+from . import __package__ as base_package
+from .wrapper import get_user_path
 if TYPE_CHECKING:
     from .preferences import STB_preferences
     from .properties import STB_button_properties
@@ -25,15 +27,16 @@ ALL_AREAS = [
 
 
 def get_preferences(context: Context) -> STB_preferences:
-    return context.preferences.addons[__package__].preferences
+    return context.preferences.addons[base_package].preferences
+
+
+def get_storage_dir():
+    return get_user_path(base_package, "Storage", True)
 
 
 def save_text(active_text: Text, script_name: str) -> None:
     text = active_text.as_string()
-    storage_dir = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), "Storage")
-    if not os.path.isdir(storage_dir):
-        os.mkdir(storage_dir)
+    storage_dir = get_storage_dir()
     destination = os.path.join(storage_dir, "%s.py" % script_name)
     with open(destination, 'w', encoding='utf8') as outfile:
         outfile.write(text)
@@ -41,8 +44,7 @@ def save_text(active_text: Text, script_name: str) -> None:
 
 def get_text(script_name: str) -> None:
     destination = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "Storage",
+        get_storage_dir(),
         "%s.py" % script_name
     )
     if bpy.data.texts.find(script_name) == -1:
@@ -54,10 +56,7 @@ def get_text(script_name: str) -> None:
 
 
 def get_all_saved_scripts() -> list:
-    storage_dir = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), "Storage")
-    if not os.path.isdir(storage_dir):
-        os.mkdir(storage_dir)
+    storage_dir = get_storage_dir()
     scripts = []
     for file in os.listdir(storage_dir):
         scripts.append(file.replace(".py", ""))
@@ -390,8 +389,7 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
 
     if delete_file:
         os.remove(os.path.join(
-            os.path.dirname(__file__),
-            "Storage",
+            get_storage_dir(),
             "%s.py" % name
         ))
     if delete_text:
@@ -607,8 +605,7 @@ def get_export_text(selection):
     if text:
         text = text.as_string()
     else:
-        destination = "%s/Storage/%s.py" % (os.path.dirname(
-            os.path.abspath(__file__)), selection.name)
+        destination = os.path.join(get_storage_dir(), f"{selection.name}.py")
         with open(destination, 'r', encoding="utf-8") as file:
             text = file.read()
     return text
@@ -707,15 +704,14 @@ def rename(context: Context, name: str):
     if bpy.data.texts.find(STB_pref.selected_button) == -1:
         get_text(STB_pref.selected_button)
     text = bpy.data.texts[STB_pref.selected_button]
-    directory = os.path.dirname(os.path.abspath(__file__))
-    old_path = os.path.join(directory, "Storage", "%s.py" %
+    old_path = os.path.join(get_storage_dir(), "%s.py" %
                             STB_pref.selected_button)
     if name != button.name:
         name = check_for_duplicates(get_all_button_names(context).difference([button.name]), name)
     button.name = name
     button.selected = True
     text.name = name
-    os.rename(old_path, os.path.join(directory, "Storage", "%s.py" % name))
+    os.rename(old_path, os.path.join(get_storage_dir(), "%s.py" % name))
     if not STB_pref.autoload:
         bpy.data.texts.remove(text)
 

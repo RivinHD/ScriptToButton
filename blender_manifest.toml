@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "script_to_button"
-version = "2.3.0"
+version = "2.3.1"
 name = "Script To Button"
 tagline = "Converts scripts to buttons"
 maintainer = "RivinHD"
