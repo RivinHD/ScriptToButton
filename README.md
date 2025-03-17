@@ -3,7 +3,13 @@ Script To Button gives you the possibility to convert your Blender scripts into 
 The add-on saves your scripts so that they can be used in any other Blender project.
 You can also define properties for your script that allow you to use user input in your script.
 
-# Installation
+# Installation 
+1. Copy the url: `https://github.com/RivinHD/ScriptToButton/blob/master/index.json`
+2. Get Extensions → Repositories → [+] → Add Remote Repository
+3. Enable `Check for Updates on Startup`
+4. Install the extension by searching the `Available` list for `Script To Button` and click `Install`
+
+# Legacy Installation
 1. Go on the left side to [Release](https://github.com/RivinHD/ScriptToButton/releases/latest) and download the latest Version `ScriptToButton.zip` at the bottem under Assets.
 1. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
 2. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file

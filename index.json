@@ -1,0 +1,29 @@
+{
+  "version": "v1",
+  "blocklist": [],
+  "data": [
+    {
+      "schema_version": "1.0.0",
+      "id": "script_to_button",
+      "name": "Script To Button",
+      "tagline": "Converts scripts to buttons",
+      "version": "2.3.2",
+      "type": "add-on",
+      "maintainer": "RivinHD",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://github.com/RivinHD/ScriptToButton/wiki",
+      "permissions": {
+        "files": "Save the user defined scripts"
+      },
+      "tags": [
+        "System"
+      ],
+      "archive_url": "https://github.com/RivinHD/ScriptToButton/releases/download/v2.3.2/script_to_button-2.3.2.zip",
+      "archive_size": 22450,
+      "archive_hash": "sha256:7f9271aecd5634e330ac227edc6593d686a3a6ca8550bf60f58fa47d3ab58baf"
+    }
+  ]
+}

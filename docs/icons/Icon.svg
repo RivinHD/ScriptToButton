@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="256"
+   height="256"
+   viewBox="0 0 67.733334 67.733334"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="Icon.svg"
+   inkscape:export-filename="Icon.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.3879489"
+     inkscape:cx="121.7624"
+     inkscape:cy="47.191938"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <sodipodi:guide
+       position="0,67.733334"
+       orientation="0,256"
+       id="guide3"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="67.733334,67.733334"
+       orientation="256,0"
+       id="guide4"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="67.733334,0"
+       orientation="0,-256"
+       id="guide5"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="0,0"
+       orientation="-256,0"
+       id="guide6"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="ConcaveTriangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Concave triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="M -2,-4 9,0 -2,4 c 2,-2.33 2,-5.66 0,-8 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path7" />
+    </marker>
+  </defs>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g10"
+       transform="translate(-0.55270205,-0.11729495)">
+      <g
+         id="g3"
+         transform="matrix(1.1382922,0,0,1.1382922,-75.561887,-64.55366)">
+        <rect
+           style="fill:#f2f2f2;stroke:#000000;stroke-width:1;stroke-miterlimit:5"
+           id="rect1"
+           width="39.235229"
+           height="14.008423"
+           x="80.66481"
+           y="97.039742"
+           rx="4.7657251"
+           ry="4.7657251" />
+        <text
+           xml:space="preserve"
+           style="font-size:12.3472px;line-height:1.3;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;text-decoration-color:#000000;text-orientation:sideways;text-anchor:middle;fill:#000000;stroke:none;stroke-width:1;stroke-miterlimit:5"
+           x="100.25529"
+           y="108.39079"
+           id="text2"><tspan
+             sodipodi:role="line"
+             id="tspan2"
+             style="fill:#000000;stroke:none;stroke-width:1"
+             x="100.25529"
+             y="108.39079">Button</tspan></text>
+      </g>
+      <g
+         id="g8"
+         transform="matrix(1.1382922,0,0,1.1382922,-2.7853396,-2.919309)">
+        <rect
+           style="fill:#666666;stroke:none;stroke-width:0.3;stroke-miterlimit:5;stroke-dasharray:none"
+           id="rect6"
+           width="52.187778"
+           height="21.135368"
+           x="4.9780111"
+           y="7.4378853"
+           rx="4.4797816"
+           ry="4.4797816" />
+        <g
+           id="g6"
+           transform="translate(1.3940097,-0.78872633)">
+          <g
+             id="g7">
+            <text
+               xml:space="preserve"
+               style="font-size:22.5778px;line-height:1.3;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;text-decoration-color:#000000;text-orientation:sideways;text-anchor:middle;fill:#000000;stroke:#000000;stroke-width:1;stroke-miterlimit:5"
+               x="21.954346"
+               y="28.9035"
+               id="text1"><tspan
+                 sodipodi:role="line"
+                 id="tspan1"
+                 style="font-size:22.5778px;fill:#000000;stroke:#000000;stroke-width:1"
+                 x="21.954346"
+                 y="28.9035">&lt; &gt;</tspan></text>
+            <text
+               xml:space="preserve"
+               style="font-size:12.3472px;line-height:1.3;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;text-decoration-color:#000000;text-orientation:sideways;text-anchor:middle;fill:#000000;stroke:#ffffff;stroke-width:0.3;stroke-miterlimit:5;stroke-dasharray:none"
+               x="37.297985"
+               y="18.232525"
+               id="text3"><tspan
+                 sodipodi:role="line"
+                 id="tspan3"
+                 style="font-size:12.3472px;fill:#ffffff;stroke:none;stroke-width:0.3;stroke-dasharray:none"
+                 x="37.297985"
+                 y="18.232525">Script</tspan></text>
+          </g>
+        </g>
+      </g>
+      <g
+         id="g9"
+         transform="matrix(1.1382922,0,0,1.1382922,-2.7853396,-2.3502531)">
+        <path
+           style="fill:none;stroke:#00ff00;stroke-width:1;stroke-miterlimit:5;marker-end:url(#ConcaveTriangle)"
+           d="m 17.569878,28.9035 c 1.950003,11.864203 22.376719,-2.494296 24.112576,6.106939"
+           id="path2"
+           sodipodi:nodetypes="cc" />
+        <text
+           xml:space="preserve"
+           style="font-size:12.3472px;line-height:1.3;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;text-decoration-color:#000000;text-orientation:sideways;text-anchor:middle;fill:#00ff00;stroke:none;stroke-width:0.3;stroke-miterlimit:5;stroke-dasharray:none"
+           x="54.329269"
+           y="39.351013"
+           id="text6"><tspan
+             sodipodi:role="line"
+             id="tspan6"
+             style="fill:#00ff00;stroke:none;stroke-width:0.3"
+             x="54.329269"
+             y="39.351013">To</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -6,7 +6,7 @@ bl_info = {
     "name": "Script To Button",
     "author": "RivinHD",
     "blender": (3, 6, 0),
-    "version": (2, 3, 1),
+    "version": (2, 3, 2),
     "location": "View3D",
     "category": "System",
     "doc_url": "https://github.com/RivinHD/ScriptToButton/wiki",
