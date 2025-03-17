@@ -10,7 +10,7 @@ You can also define properties for your script that allow you to use user input 
 4. Install the extension by searching the `Available` list for `Script To Button` and click `Install`
 
 # Legacy Installation
-1. Go on the left side to [Release](https://github.com/RivinHD/ScriptToButton/releases/latest) and download the latest Version `ScriptToButton.zip` at the bottem under Assets.
+1. Go on the left side to [Release](https://github.com/RivinHD/ScriptToButton/releases/latest) and download the latest Version `legacy_script_to_button-2.3.2.zip` at the bottem under Assets.
 1. Start Blender and navigate to Edit -> Preferences -> Add-ons and click "Install"
 2. Select the Add-on named "ScriptToButton.zip" or "ScriptToButton-master.zip" and import it as .zip file
 3. Enable the Add-on
