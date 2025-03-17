@@ -7,7 +7,8 @@ You can also define properties for your script that allow you to use user input 
 1. Copy the url: `https://raw.githubusercontent.com/RivinHD/ScriptToButton/refs/heads/master/index.json`
 2. Get Extensions → Repositories → [+] → Add Remote Repository
 3. Enable `Check for Updates on Startup`
-4. Install the extension by searching the `Available` list for `Script To Button` and click `Install`
+4. (Optional) Rename the name of the repository (`raw.githubusercontent.com`) to `Script To Button` to better describe it.
+5. Install the extension by searching the `Available` list for `Script To Button` and click `Install`
 
 # Legacy Installation
 1. Go on the left side to [Release](https://github.com/RivinHD/ScriptToButton/releases/latest) and download the latest Version `legacy_script_to_button-2.3.2.zip` at the bottem under Assets.
