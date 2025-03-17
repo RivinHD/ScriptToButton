@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "script_to_button"
-version = "2.3.1"
+version = "2.3.2"
 name = "Script To Button"
 tagline = "Converts scripts to buttons"
 maintainer = "RivinHD"
@@ -67,11 +67,5 @@ files = "Save the user defined scripts"
 # These are the default build excluded patterns.
 # You only need to edit them if you want different options.
 paths_exclude_pattern = [
-    "__pycache__/",
-    "/.git/",
-    "/*.zip",
-    "/.vscode/",
-    "/.github/",
-    ".gitignore",
-    ".gitattributes"
+    "/Storage/"
 ]
