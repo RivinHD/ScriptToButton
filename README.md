@@ -4,7 +4,7 @@ The add-on saves your scripts so that they can be used in any other Blender proj
 You can also define properties for your script that allow you to use user input in your script.
 
 # Installation 
-1. Copy the url: `https://github.com/RivinHD/ScriptToButton/blob/master/index.json`
+1. Copy the url: `https://raw.githubusercontent.com/RivinHD/ScriptToButton/refs/heads/master/index.json`
 2. Get Extensions → Repositories → [+] → Add Remote Repository
 3. Enable `Check for Updates on Startup`
 4. Install the extension by searching the `Available` list for `Script To Button` and click `Install`
