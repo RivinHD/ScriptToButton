@@ -1,5 +1,6 @@
 import bpy
-from bpy.types import Menu, Context
+from bpy.types import Context
+
 from . import dynamic_panels as panels
 
 

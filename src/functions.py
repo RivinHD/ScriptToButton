@@ -1,14 +1,17 @@
-import os
-import bpy
-import zipfile
-import uuid
-from bpy.props import StringProperty, PointerProperty
-from bpy.types import PropertyGroup, Context, UILayout, Text, AddonPreferences, Scene
-from typing import TYPE_CHECKING, Union
 import functools
-from .import dynamic_panels as panels
+import os
+import uuid
+import zipfile
+from typing import TYPE_CHECKING
+
+import bpy
+from bpy.props import PointerProperty, StringProperty
+from bpy.types import AddonPreferences, Context, PropertyGroup, Scene, Text, UILayout
+
 from . import __package__ as base_package
+from . import dynamic_panels as panels
 from .wrapper import get_user_path
+
 if TYPE_CHECKING:
     from .preferences import STB_preferences
     from .properties import STB_button_properties
@@ -20,9 +23,15 @@ else:
 classes = []
 NotOneStart = [False]
 ALL_AREAS = [
-    "3D_Viewport", "UV_Editor", "Compositor", "Video_Sequencer",
-    "Movie_Clip_Editor", "Dope_Sheet", "Graph_Editor", "Nonlinear_Animation",
-    "Text_Editor"
+    "3D_Viewport",
+    "UV_Editor",
+    "Compositor",
+    "Video_Sequencer",
+    "Movie_Clip_Editor",
+    "Dope_Sheet",
+    "Graph_Editor",
+    "Nonlinear_Animation",
+    "Text_Editor",
 ]
 
 
@@ -38,20 +47,17 @@ def save_text(active_text: Text, script_name: str) -> None:
     text = active_text.as_string()
     storage_dir = get_storage_dir()
     destination = os.path.join(storage_dir, "%s.py" % script_name)
-    with open(destination, 'w', encoding='utf8') as outfile:
+    with open(destination, "w", encoding="utf8") as outfile:
         outfile.write(text)
 
 
 def get_text(script_name: str) -> None:
-    destination = os.path.join(
-        get_storage_dir(),
-        "%s.py" % script_name
-    )
+    destination = os.path.join(get_storage_dir(), "%s.py" % script_name)
     if bpy.data.texts.find(script_name) == -1:
         bpy.data.texts.new(script_name)
     else:
         bpy.data.texts[script_name].clear()
-    with open(destination, 'r', encoding='utf8') as file:
+    with open(destination, "r", encoding="utf8") as file:
         bpy.data.texts[script_name].write(file.read())
 
 
@@ -74,11 +80,10 @@ def load(context: Context) -> tuple[list, list]:
         new = scene.stb.add()
         new.name = script
         get_text(script)
+        txt = bpy.data.texts[script].as_string()
+        new.description = get_description(txt)
         btnFails[0].append(script)
-        btnFails[1].append(add_areas_and_props(
-            new,
-            bpy.data.texts[script].as_string()
-        ))
+        btnFails[1].append(add_areas_and_props(new, txt))
         if not STB_pref.autoload:
             bpy.data.texts.remove(bpy.data.texts[script])
     if len(scene.stb) > 0:
@@ -100,6 +105,17 @@ def list_to_enum_items(data: list) -> list:
     for i in range(len(data)):
         enum_items.append((data[i], data[i], "", "", i))
     return enum_items
+
+
+def get_description(text: str) -> str:
+    lines = text.splitlines()
+    if not len(lines):
+        return ""
+    comments = (x.strip() for x in lines[0].split("///"))
+    for comment in comments:
+        if comment.startswith("#STB-Tooltip-"):
+            return comment.split("-")[2][1:-1].replace('\\"', '"')
+    return ""
 
 
 def get_panel(text: str) -> str:
@@ -130,7 +146,7 @@ def get_areas(text: str) -> list:
 AREA_PARSE_DICT = {
     "3D_Viewport": "VIEW_3D",
     "UV_Editor": "UV",
-    "Image_Editor": "VIEW",
+    "Image_Editor": "IMAGE_EDITOR",
     "Compositor": "CompositorNodeTree",
     "Texture_Node_Editor": "TextureNodeTree",
     "Geomerty_Node_Editor": "GeometryNodeTree",
@@ -142,11 +158,16 @@ AREA_PARSE_DICT = {
     "Graph_Editor": "FCURVES",
     "Drivers": "DRIVERS",
     "Nonlinear_Animation": "NLA_EDITOR",
-    "Text_Editor": "TEXT_EDITOR"
+    "Text_Editor": "TEXT_EDITOR",
 }
 
+AREA_PARSE_DICT_INVERSE = {value: key for key, value in AREA_PARSE_DICT.items()}
 
-def area_parser(area: str) -> Union[str, bool]:
+# Old assignment before Blender 4.2
+AREA_PARSE_DICT_INVERSE["VIEW"] = "Image_Editor"
+
+
+def area_parser(area: str) -> str | bool:
     return AREA_PARSE_DICT.get(area, False)
 
 
@@ -155,7 +176,7 @@ def get_props(text: str) -> list:
     props = []
     for i in range(len(lines)):
         current_line = lines[i].strip()
-        if not current_line.startswith("#STB-") or current_line.startswith("#STB-Area"):
+        if not current_line.startswith("#STB-Input"):
             continue
         next_line = lines[i + 1]
         if next_line.startswith("#"):
@@ -167,35 +188,33 @@ def get_props(text: str) -> list:
             if not input.startswith("#STB-Input"):
                 continue
             split = input.split("-")
-            props.append({
-                "name": line_name.strip(),
-                "line_name": line_name,
-                "space": split[2],
-                "type": split[3],
-                "sort": split[4] if len(split) > 4 else "",
-                "line": i + 1,
-                "value": value
-            })
+            props.append(
+                {
+                    "name": line_name.strip(),
+                    "line_name": line_name,
+                    "space": split[2],
+                    "type": split[3],
+                    "sort": split[4] if len(split) > 4 else "",
+                    "line": i + 1,
+                    "value": value,
+                }
+            )
     return props
 
 
 BLENDER_TYPE_TO_PY_TYPE = {
-    'String': str,
-    'Int': int,
-    'Float': float,
-    'Bool': bool,
-    'Enum': (list, tuple),
-    'IntVector': (list, tuple),
-    'FloatVector': (list, tuple),
-    'BoolVector': (list, tuple),
-    'List': (list, tuple),
-    'Object': bpy.types.Object,
+    "String": str,
+    "Int": int,
+    "Float": float,
+    "Bool": bool,
+    "Enum": (list, tuple),
+    "IntVector": (list, tuple),
+    "FloatVector": (list, tuple),
+    "BoolVector": (list, tuple),
+    "List": (list, tuple),
+    "Object": bpy.types.Object,
 }
-VECTOR_TYPE = {
-    'IntVector': int,
-    'FloatVector': float,
-    'BoolVector': bool
-}
+VECTOR_TYPE = {"IntVector": int, "FloatVector": float, "BoolVector": bool}
 
 
 def add_prop(button: STB_button_properties, property) -> bool:
@@ -205,27 +224,31 @@ def add_prop(button: STB_button_properties, property) -> bool:
         return False
 
     property_type = property["type"]
-    is_type = isinstance(
-        value,
-        BLENDER_TYPE_TO_PY_TYPE.get(property_type, None)
-    )
-    if ((property_type in {'String', 'Int', 'Float', 'Bool', 'List', 'Object'} and not is_type)
-            or
-            (property_type == 'Enum'
-             and not (
-                 is_type
-                 and isinstance(value[1], (list, tuple))
-                 and isinstance(value[0], str)
-                 and all(map(lambda x: isinstance(x, str), value[1])))
-             )
-            or
-            (property_type in {'IntVector', 'FloatVector', 'BoolVector'}
-             and not (
+    is_type = isinstance(value, BLENDER_TYPE_TO_PY_TYPE.get(property_type, None))
+    if (
+        (
+            property_type in {"String", "Int", "Float", "Bool", "List", "Object"}
+            and not is_type
+        )
+        or (
+            property_type == "Enum"
+            and not (
+                is_type
+                and isinstance(value[1], (list, tuple))
+                and isinstance(value[0], str)
+                and all(map(lambda x: isinstance(x, str), value[1]))
+            )
+        )
+        or (
+            property_type in {"IntVector", "FloatVector", "BoolVector"}
+            and not (
                 is_type
                 and all(map(lambda x: isinstance(x, VECTOR_TYPE[property_type]), value))
                 and len(value) >= 1
-                and len(value) <= 32)
-             )):  # Check types
+                and len(value) <= 32
+            )
+        )
+    ):  # Check types
         return False
 
     try:
@@ -240,7 +263,7 @@ def add_prop(button: STB_button_properties, property) -> bool:
     new_element.space = property["space"]
     new_element.line = property["line"]
     new_element.sort = property["sort"]
-    if property_type == 'Enum':
+    if property_type == "Enum":
         new_element.items.clear()
         for v in value[1]:
             item = new_element.items.add()
@@ -250,23 +273,16 @@ def add_prop(button: STB_button_properties, property) -> bool:
             new_element.prop = value[0]
         except Exception:
             new_element.prop = value[1][0]
-    elif property_type in {'IntVector', 'FloatVector', 'BoolVector'}:
+    elif property_type in {"IntVector", "FloatVector", "BoolVector"}:
         new_element.address = create_vector_prop(
             len(value),
-            ("%s_%s%s" % (
-                button.name,
-                name,
-                str(new_element.line)
-            )).replace(" ", ""),
+            ("%s_%s%s" % (button.name, name, str(new_element.line))).replace(" ", ""),
             property_type,
-            "bpy.context.scene.stb['%s'].%sProps['%s']" % (
-                button.name,
-                property_type,
-                name
-            )
+            "bpy.context.scene.stb['%s'].%sProps['%s']"
+            % (button.name, property_type, name),
         )
         exec("%s.prop = value" % new_element.address)
-    elif property_type == 'List':
+    elif property_type == "List":
         new_element.prop.clear()
         for i in value:
             prop = new_element.prop.add()
@@ -276,15 +292,17 @@ def add_prop(button: STB_button_properties, property) -> bool:
                     prop.ptype = str(type(i).__name__)
                 else:
                     prop.strprop = str(i)
-                    prop.ptype = 'str'
+                    prop.ptype = "str"
                 continue
 
-            if (isinstance(i, (list, tuple))
-                    and (isinstance(i[1], list) or isinstance(i[1], tuple))
-                    and isinstance(i[0], str)
-                    and all(map(lambda x: isinstance(x, str), i[1]))):
+            if (
+                isinstance(i, (list, tuple))
+                and (isinstance(i[1], list) or isinstance(i[1], tuple))
+                and isinstance(i[0], str)
+                and all(map(lambda x: isinstance(x, str), i[1]))
+            ):
                 prop.enum_prop.items.clear()  # Enum
-                prop.ptype = 'enum'
+                prop.ptype = "enum"
                 for v in i[1]:
                     item = prop.enum_prop.items.add()
                     item.name = v
@@ -293,70 +311,65 @@ def add_prop(button: STB_button_properties, property) -> bool:
                     prop.enum_prop.prop = i[0]
                 except Exception:
                     prop.enum_prop.prop = i[1][0]
-            elif (isinstance(i, {list, tuple})
-                  and all(map(lambda x: isinstance(x, bool), i))
-                  and len(i) <= 32):  # BoolVector
+            elif (
+                isinstance(i, {list, tuple})
+                and all(map(lambda x: isinstance(x, bool), i))
+                and len(i) <= 32
+            ):  # BoolVector
                 prop.boolvector_prop = create_vector_prop(
                     len(i),
-                    ("%s_%s_list_%s" % (
-                        button.name,
-                        name,
-                        str(len(new_element.prop)))
-                     ).replace(" ", ""),
+                    (
+                        "%s_%s_list_%s"
+                        % (button.name, name, str(len(new_element.prop)))
+                    ).replace(" ", ""),
                     "BoolVector",
-                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (
-                        button.name,
-                        name
-                    )
+                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (button.name, name),
                 )
-                prop.ptype = 'boolvector'
+                prop.ptype = "boolvector"
                 exec("%s.prop = i" % prop.boolvector_prop)
-            elif (isinstance(i, {list, tuple})
-                  and all(map(lambda x: isinstance(x, int), i))
-                  and len(i) <= 32):  # IntVector
+            elif (
+                isinstance(i, {list, tuple})
+                and all(map(lambda x: isinstance(x, int), i))
+                and len(i) <= 32
+            ):  # IntVector
                 prop.intvector_prop = create_vector_prop(
                     len(i),
-                    ("%s_%s_list_%s" % (
-                        button.name,
-                        name,
-                        str(len(new_element.prop)))
-                     ).replace(" ", ""),
+                    (
+                        "%s_%s_list_%s"
+                        % (button.name, name, str(len(new_element.prop)))
+                    ).replace(" ", ""),
                     "IntVector",
-                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (
-                        button.name,
-                        name
-                    )
+                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (button.name, name),
                 )
-                prop.ptype = 'intvector'
+                prop.ptype = "intvector"
                 exec("%s.prop = i" % prop.intvector_prop)
-            elif (isinstance(i, {list, tuple})
-                  and all(map(lambda x: isinstance(x, float), i))
-                  and len(i) <= 32):  # FloatVector
+            elif (
+                isinstance(i, {list, tuple})
+                and all(map(lambda x: isinstance(x, float), i))
+                and len(i) <= 32
+            ):  # FloatVector
                 prop.floatvector_prop = create_vector_prop(
                     len(i),
-                    ("%s_%s_list_%s" % (
-                        button.name,
-                        name, str(len(new_element.prop)))
-                     ).replace(" ", ""),
+                    (
+                        "%s_%s_list_%s"
+                        % (button.name, name, str(len(new_element.prop)))
+                    ).replace(" ", ""),
                     "FloatVector",
-                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (
-                        button.name,
-                        name
-                    ),
+                    "bpy.context.scene.stb['%s'].ListProps['%s']" % (button.name, name),
                 )
-                prop.ptype = 'floatvector'
+                prop.ptype = "floatvector"
                 exec("%s.prop = i" % prop.floatvector_prop)
             else:
                 prop.strprop = str(i)
-                prop.ptype = 'str'
-    elif property_type == 'Object':
+                prop.ptype = "str"
+    elif property_type == "Object":
         new_element.prop = value.name
     else:
         new_element.prop = value
     return True
 
 
-def add_button(context: Context, name: str, textname: str):
+def add_button(context: Context, name: str, textname: str, description: str):
     STB_pref = get_preferences(context)
     texts = bpy.data.texts
     text = texts[textname].as_string()  # Get selected Text
@@ -375,6 +388,8 @@ def add_button(context: Context, name: str, textname: str):
         context.scene.stb.remove(index)
     new = context.scene.stb.add()  # Create new Instance
     new.name = check_for_duplicates(get_all_button_names(context), name)
+    if description != "":
+        new.description = description
     fails = add_areas_and_props(new, text)
     if new.panel not in panels.panel_names:
         panels.register_button_panel(new.panel)
@@ -388,10 +403,7 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
     button = stb[name]
 
     if delete_file:
-        os.remove(os.path.join(
-            get_storage_dir(),
-            "%s.py" % name
-        ))
+        os.remove(os.path.join(get_storage_dir(), "%s.py" % name))
     if delete_text:
         if (index := bpy.data.texts.find(name)) != -1:
             bpy.data.texts.remove(bpy.data.texts[index])
@@ -416,10 +428,10 @@ def create_fail_message(fails: tuple[list, list]):
         message += "   Properties: \n"
         for fail in fails[1]:
             message += "      Line: %s    #STB-Input-%s-%s      %s \n" % (
-                str(fail['line']),
-                str(fail['space']),
-                str(fail['type']),
-                str(fail['value'])
+                str(fail["line"]),
+                str(fail["space"]),
+                str(fail["type"]),
+                str(fail["value"]),
             )
     return message
 
@@ -432,11 +444,13 @@ def load_from_texteditor(op, context: Context) -> tuple[list, list]:
             btn_index = context.scene.stb.find(txt.txt_name)
             if btn_index != -1:
                 btnFails[0].append(txt.txt_name)
-                btnFails[1].append(reload_button_text(
-                    context.scene.stb[btn_index],
-                    bpy.data.texts[txt.txt_name].as_string(),
-                    context.scene
-                ))
+                btnFails[1].append(
+                    reload_button_text(
+                        context.scene.stb[btn_index],
+                        bpy.data.texts[txt.txt_name].as_string(),
+                        context.scene,
+                    )
+                )
                 if STB_pref.autosave:
                     save_text(bpy.data.texts[txt.txt_name], txt.txt_name)
             else:
@@ -449,11 +463,13 @@ def load_from_texteditor(op, context: Context) -> tuple[list, list]:
         btn_index = context.scene.stb.find(txt.txt_name)
         if btn_index != -1:
             btnFails[0].append(txt.txt_name)
-            btnFails[1].append(reload_button_text(
-                context.scene.stb[btn_index],
-                bpy.data.texts[txt.txt_name].as_string(),
-                context.scene
-            ))
+            btnFails[1].append(
+                reload_button_text(
+                    context.scene.stb[btn_index],
+                    bpy.data.texts[txt.txt_name].as_string(),
+                    context.scene,
+                )
+            )
             if STB_pref.autosave:
                 save_text(bpy.data.texts[txt.txt_name], txt.txt_name)
         else:
@@ -462,13 +478,16 @@ def load_from_texteditor(op, context: Context) -> tuple[list, list]:
 
 
 def load_add_button(name):
-    bpy.ops.stb.addbutton(show_skip=True, name=name, text_list=name)
+    bpy.ops.stb.addbutton(show_skip=True, name=name, text=name, text_list=name)
 
 
-def reload_button_text(button: STB_button_properties, text: str, scene: Scene) -> tuple[list, list]:
+def reload_button_text(
+    button: STB_button_properties, text: str, scene: Scene
+) -> tuple[list, list]:
     delete_vector_props(button)
     delete_list_prop(button)
     fails = add_areas_and_props(button, text)
+    button.description = get_description(text)
 
     panel_names = set(button.panel for button in scene.stb)
     for panel in set(panels.panel_names).difference(panel_names):
@@ -479,8 +498,16 @@ def reload_button_text(button: STB_button_properties, text: str, scene: Scene) -
 
 
 Property_type = {
-    "String", "Int", "Float", "Bool", "Enum",
-    "IntVector", "FloatVector", "BoolVector", "List", "Object"
+    "String",
+    "Int",
+    "Float",
+    "Bool",
+    "Enum",
+    "IntVector",
+    "FloatVector",
+    "BoolVector",
+    "List",
+    "Object",
 }
 
 
@@ -522,7 +549,7 @@ def update_vector_property(self, context):
         prop.line,
         prop.linename,
         [ele for ele in self.prop],
-        eval("context.scene.%s" % prop.path_from_id().split(".")[0])
+        eval("context.scene.%s" % prop.path_from_id().split(".")[0]),
     )
 
 
@@ -533,12 +560,13 @@ def create_vector_prop(size: int, name: str, type: str, back_address: str):
     class VectorProp(PropertyGroup):
         prop: property_func(size=size, update=update_vector_property)
         address: StringProperty(default=back_address)
+
     VectorProp.__name__ = "VectorProp_%s_%s" % (type, vec_id)
     bpy.utils.register_class(VectorProp)
     setattr(
         bpy.types.Scene,
         "stb_%sproperty_%s" % (type.lower(), vec_id),
-        PointerProperty(type=VectorProp)
+        PointerProperty(type=VectorProp),
     )
     return "bpy.context.scene.stb_%sproperty_%s" % (type.lower(), vec_id)
 
@@ -549,11 +577,7 @@ def unregister_vector():
 
 
 def delete_vector_props(button: STB_button_properties):
-    props = [
-        *button.IntVectorProps,
-        *button.FloatVectorProps,
-        *button.BoolVectorProps
-    ]
+    props = [*button.IntVectorProps, *button.FloatVectorProps, *button.BoolVectorProps]
     for vec in props:
         name = vec.address.split(".")[-1]
         if hasattr(bpy.types.Scene, name):
@@ -572,7 +596,9 @@ def delete_list_prop(button: STB_button_properties):
                 del bpy.context.scene[name]
 
 
-def update_text(linepos: int, varname: str, message: str, button: STB_button_properties):
+def update_text(
+    linepos: int, varname: str, message: str, button: STB_button_properties
+):
     if NotOneStart[0] and bpy.data.texts.find(button.name) != -1:
         text = bpy.data.texts[button.name]
         text.lines[linepos].body = "%s= %s" % (varname, str(message))
@@ -582,14 +608,14 @@ def update_text(linepos: int, varname: str, message: str, button: STB_button_pro
 
 
 TYPE_GETTER = {
-    'str': lambda v: v.str_prop,
-    'int': lambda v: v.int_prop,
-    'float': lambda v: v.float_prop,
-    'bool': lambda v: v.bool_prop,
-    'enum': lambda v: [v.enum_prop.prop, [item.item for item in v.enum_prop.items]],
-    'intvector': lambda v: [i for i in eval("%s['prop']" % v.intvector_prop)],
-    'floatvector': lambda v: [i for i in eval("%s['prop']" % v.floatvector_prop)],
-    'boolvector': lambda v: [bool(i) for i in eval("%s['prop']" % v.boolvector_prop)]
+    "str": lambda v: v.str_prop,
+    "int": lambda v: v.int_prop,
+    "float": lambda v: v.float_prop,
+    "bool": lambda v: v.bool_prop,
+    "enum": lambda v: [v.enum_prop.prop, [item.item for item in v.enum_prop.items]],
+    "intvector": lambda v: [i for i in eval("%s['prop']" % v.intvector_prop)],
+    "floatvector": lambda v: [i for i in eval("%s['prop']" % v.floatvector_prop)],
+    "boolvector": lambda v: [bool(i) for i in eval("%s['prop']" % v.boolvector_prop)],
 }
 
 
@@ -606,7 +632,7 @@ def get_export_text(selection):
         text = text.as_string()
     else:
         destination = os.path.join(get_storage_dir(), f"{selection.name}.py")
-        with open(destination, 'r', encoding="utf-8") as file:
+        with open(destination, "r", encoding="utf-8") as file:
             text = file.read()
     return text
 
@@ -615,16 +641,16 @@ def export(mode, selections: list, export_path: str) -> None:
     if mode == "py":
         for selection in selections:
             path = os.path.join(export_path, "%s.py" % selection.name)
-            with open(path, 'w', encoding='utf8') as file:
+            with open(path, "w", encoding="utf8") as file:
                 file.write(get_export_text(selection))
     else:
         folder_path = os.path.join(bpy.app.tempdir, "STB_Zip")
         if not os.path.exists(folder_path):
             os.mkdir(folder_path)
-        with zipfile.ZipFile(export_path, 'w') as zip_it:
+        with zipfile.ZipFile(export_path, "w") as zip_it:
             for selection in selections:
                 zip_path = os.path.join(folder_path, "%s.py" % selection.name)
-                with open(zip_path, 'w', encoding='utf8') as file:
+                with open(zip_path, "w", encoding="utf8") as file:
                     file.write(get_export_text(selection))
                 zip_it.write(zip_path, "%s.py" % selection.name)
                 os.remove(zip_path)
@@ -633,7 +659,7 @@ def export(mode, selections: list, export_path: str) -> None:
 
 def import_zip(filepath: str, context: Context) -> tuple[list, list]:
     btnFails = ([], [])
-    with zipfile.ZipFile(filepath, 'r') as zip_out:
+    with zipfile.ZipFile(filepath, "r") as zip_out:
         filepaths = []
         for i in zip_out.namelist():
             if i.endswith(".py"):
@@ -647,20 +673,18 @@ def import_zip(filepath: str, context: Context) -> tuple[list, list]:
 
 
 def import_py(filepath: str, context: Context) -> tuple[list[str], tuple[list, list]]:
-    with open(filepath, 'r', encoding='utf8') as file:
+    with open(filepath, "r", encoding="utf8") as file:
         txt = file.read()
         return import_button(filepath, context, txt)
 
 
 def import_button(
-        filepath: str,
-        context: Context,
-        txt: str) -> tuple[list[str], tuple[list, list]]:
+    filepath: str, context: Context, txt: str
+) -> tuple[list[str], tuple[list, list]]:
     STB_pref = get_preferences(context)
     stb = context.scene.stb
     name = check_for_duplicates(
-        get_all_button_names(context),
-        os.path.splitext(os.path.basename(filepath))[0]
+        get_all_button_names(context), os.path.splitext(os.path.basename(filepath))[0]
     )
     bpy.data.texts.new(name)
     bpy.data.texts[name].write(txt)
@@ -704,10 +728,11 @@ def rename(context: Context, name: str):
     if bpy.data.texts.find(STB_pref.selected_button) == -1:
         get_text(STB_pref.selected_button)
     text = bpy.data.texts[STB_pref.selected_button]
-    old_path = os.path.join(get_storage_dir(), "%s.py" %
-                            STB_pref.selected_button)
+    old_path = os.path.join(get_storage_dir(), "%s.py" % STB_pref.selected_button)
     if name != button.name:
-        name = check_for_duplicates(get_all_button_names(context).difference([button.name]), name)
+        name = check_for_duplicates(
+            get_all_button_names(context).difference([button.name]), name
+        )
     button.name = name
     button.selected = True
     text.name = name
@@ -724,7 +749,7 @@ def update_all_props(button: STB_button_properties, context: Context):
         button.BoolProps,
         button.EnumProps,
         button.ObjectProps,
-        button.ListProps
+        button.ListProps,
     ]
     for prop in simple_props:
         for item in prop:
@@ -732,7 +757,7 @@ def update_all_props(button: STB_button_properties, context: Context):
     vector_props = [
         *button.IntVectorProps,
         *button.FloatVectorProps,
-        *button.BoolVectorProps
+        *button.BoolVectorProps,
     ]
     for prop in vector_props:
         prop = eval(prop.address)
@@ -746,44 +771,45 @@ def sort_props(button: STB_button_properties, space: str) -> tuple[list, list]:
         *button.IntProps,
         *button.FloatProps,
         *button.BoolProps,
-        *button.EnumProps
+        *button.EnumProps,
     ]
     for prop in simple_props:
         if prop.space != space:
             continue
         sort_mapping.append(
-            [*parse_sort(prop.sort), functools.partial(draw_prop, prop=prop)])
+            [*parse_sort(prop.sort), functools.partial(draw_prop, prop=prop)]
+        )
     vector_props = [
         *button.IntVectorProps,
         *button.FloatVectorProps,
-        *button.BoolVectorProps
+        *button.BoolVectorProps,
     ]
     for prop in vector_props:
         if prop.space != space:
             continue
-        sort_mapping.append([
-            *parse_sort(prop.sort),
-            functools.partial(draw_vector_prop, prop=prop)
-        ])
+        sort_mapping.append(
+            [*parse_sort(prop.sort), functools.partial(draw_vector_prop, prop=prop)]
+        )
     for prop in button.ListProps:
         if prop.space != space:
             continue
-        sort_mapping.append([
-            *parse_sort(prop.sort),
-            functools.partial(draw_list_prop, props=prop)
-        ])
+        sort_mapping.append(
+            [*parse_sort(prop.sort), functools.partial(draw_list_prop, props=prop)]
+        )
     for prop in button.ObjectProps:
         if prop.space != space:
             continue
-        sort_mapping.append([
-            *parse_sort(prop.sort),
-            functools.partial(
-                draw_prop_search,
-                prop=prop,
-                context=bpy.data,
-                context_prop="objects"
-            )
-        ])
+        sort_mapping.append(
+            [
+                *parse_sort(prop.sort),
+                functools.partial(
+                    draw_prop_search,
+                    prop=prop,
+                    context=bpy.data,
+                    context_prop="objects",
+                ),
+            ]
+        )
     sort_mapping.sort(key=lambda x: [x[0], x[1]])
     back = []
     sort = []
@@ -810,13 +836,7 @@ def draw_sort(sort: list, back: list, baseLayout: UILayout):
                 skip_space(1, lastRow[1], lastRow[2])
                 lastRow[3] = 0
             newRow = True
-        row, skipBack, lastSpace = draw_row(
-            ele[1],
-            ele[-1],
-            layout,
-            lastRow[3],
-            newRow
-        )
+        row, skipBack, lastSpace = draw_row(ele[1], ele[-1], layout, lastRow[3], newRow)
         lastRow = [ele[0], row, skipBack, lastSpace]
     else:
         if lastRow[2] > 0:
@@ -825,7 +845,9 @@ def draw_sort(sort: list, back: list, baseLayout: UILayout):
         ele[-1](layout=baseLayout)
 
 
-def draw_row(eleParse: list, eleDraw, row: UILayout, lastSpace: int, newRow: bool) -> tuple:
+def draw_row(
+    eleParse: list, eleDraw, row: UILayout, lastSpace: int, newRow: bool
+) -> tuple:
     if newRow:
         row = row.row()
         space = eleParse[0]
@@ -852,7 +874,11 @@ def skip_space(skips: int, layout: UILayout, scale: float = 1):
 
 
 def parse_sort(sort: str):
-    if sort.startswith("[") and sort.endswith("]") and (n.digit() or n == "/" or n == ',' for n in sort[1:-1]):
+    if (
+        sort.startswith("[")
+        and sort.endswith("]")
+        and (n.digit() or n == "/" or n == "," for n in sort[1:-1])
+    ):
         sort = sort[1:-1].split(",")
         if len(sort) > 2 or len(sort) < 1:
             return [-1, [-1]]
@@ -864,7 +890,7 @@ def parse_sort(sort: str):
             if len(split) > 2:
                 split = split[:2]
             elif len(split) < 1:
-                split.append('0')
+                split.append("0")
             if "" in split:
                 rows = [-1]
             else:
@@ -880,11 +906,11 @@ def parse_sort(sort: str):
 
 
 def draw_prop(layout: UILayout, prop):
-    layout.prop(prop, 'prop', text=prop.name)
+    layout.prop(prop, "prop", text=prop.name)
 
 
 def draw_vector_prop(layout: UILayout, prop):
-    layout.prop(eval(prop.address), 'prop', text=prop.name)
+    layout.prop(eval(prop.address), "prop", text=prop.name)
 
 
 def draw_list_prop(layout: UILayout, props):
@@ -893,23 +919,23 @@ def draw_list_prop(layout: UILayout, props):
     for prop in props.prop:
         if prop.ptype.endswith("vector"):
             address = getattr(prop, "%s_prop" % prop.ptype)
-            box.prop(eval(address), 'prop', text="")
-        elif prop.ptype == 'enum':
-            box.prop(getattr(prop, "%s_prop" % prop.ptype), 'prop', text="")
+            box.prop(eval(address), "prop", text="")
+        elif prop.ptype == "enum":
+            box.prop(getattr(prop, "%s_prop" % prop.ptype), "prop", text="")
         else:
             box.prop(prop, "%s_prop" % prop.ptype, text="")
 
 
 def draw_prop_search(layout: UILayout, prop, context: Context, context_prop):
-    layout.prop_search(prop, 'prop', context, context_prop, text=prop.name)
+    layout.prop_search(prop, "prop", context, context_prop, text=prop.name)
 
 
 PY_TYPE_TO_BLENDER_TYPE = {
-    str: 'String',
-    int: 'Int',
-    float: 'Float',
-    bool: 'Bool',
-    bpy.types.Object: 'Object',
+    str: "String",
+    int: "Int",
+    float: "Float",
+    bool: "Bool",
+    bpy.types.Object: "Object",
 }
 
 
@@ -919,7 +945,11 @@ def get_all_variables(text: str) -> list:
     for i, line in enumerate(text.splitlines()):
         line = line.strip()
         split = line.split("=")
-        if len(split) != 2 or line.startswith("#") or last_line.startswith("#STB-Input"):
+        if (
+            len(split) != 2
+            or line.startswith("#")
+            or last_line.startswith("#STB-Input")
+        ):
             last_line = line
             continue
 
@@ -936,26 +966,33 @@ def get_all_variables(text: str) -> list:
             last_line = line
             continue
         if isinstance(evaluated, (bool, str, int, float, bpy.types.Object)):
-            variables.append((
-                i,
-                line,
-                value,
-                PY_TYPE_TO_BLENDER_TYPE[type(evaluated)]
-            ))
-        elif isinstance(evaluated, (tuple, list)) and len(evaluated) > 0 and value[0] in "[(":
+            variables.append((i, line, value, PY_TYPE_TO_BLENDER_TYPE[type(evaluated)]))
+        elif (
+            isinstance(evaluated, (tuple, list))
+            and len(evaluated) > 0
+            and value[0] in "[("
+        ):
             # ENUM
-            if (len(evaluated) == 2
-                    and isinstance(evaluated[1], (list, tuple))
-                    and isinstance(evaluated[0], str)
-                    and all(map(lambda x: isinstance(x, str), evaluated[1]))):
+            if (
+                len(evaluated) == 2
+                and isinstance(evaluated[1], (list, tuple))
+                and isinstance(evaluated[0], str)
+                and all(map(lambda x: isinstance(x, str), evaluated[1]))
+            ):
                 variables.append((i, line, value, "Enum"))
                 last_line = line
                 continue
             # VECTOR
             is_vector = False
-            for py_type, bl_type in {(bool, "BoolVector"), (int, "IntVector"), (float, "FloatVector")}:
-                if (all(map(lambda x: isinstance(x, py_type), evaluated))
-                        and len(evaluated) <= 32):
+            for py_type, bl_type in {
+                (bool, "BoolVector"),
+                (int, "IntVector"),
+                (float, "FloatVector"),
+            }:
+                if (
+                    all(map(lambda x: isinstance(x, py_type), evaluated))
+                    and len(evaluated) <= 32
+                ):
                     is_vector = True
                     variables.append((i, line, value, bl_type))
                     break
@@ -980,7 +1017,7 @@ def get_all_properties(button: STB_button_properties) -> tuple:
             *button.ListProps,
             *button.IntVectorProps,
             *button.FloatVectorProps,
-            *button.BoolVectorProps
+            *button.BoolVectorProps,
         ),
-        key=lambda x: x.line
+        key=lambda x: x.line,
     )

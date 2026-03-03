@@ -1,13 +1,21 @@
 import bpy
-from bpy.types import Panel, Context
-from .functions import get_preferences
+from bpy.types import Context, Panel
+
 from . import functions
+from .functions import get_preferences
 
 classes = []
 
 ui_space_types = [
-    'CLIP_EDITOR', 'NODE_EDITOR', 'TEXT_EDITOR', 'SEQUENCE_EDITOR', 'NLA_EDITOR',
-    'DOPESHEET_EDITOR', 'VIEW_3D', 'GRAPH_EDITOR', 'IMAGE_EDITOR'
+    "CLIP_EDITOR",
+    "NODE_EDITOR",
+    "TEXT_EDITOR",
+    "SEQUENCE_EDITOR",
+    "NLA_EDITOR",
+    "DOPESHEET_EDITOR",
+    "VIEW_3D",
+    "GRAPH_EDITOR",
+    "IMAGE_EDITOR",
 ]  # blender spaces with UI region
 
 
@@ -24,32 +32,29 @@ def panel_factory(space_type):
             STB_pref = get_preferences(context)
             col = layout.column()
             row = col.row(align=True)
-            row.operator("stb.add_button", text="Add", icon='ADD')
-            row.operator("stb.remove_button", text="Remove", icon='REMOVE')
+            row.operator("stb.add_button", text="Add", icon="ADD")
+            row.operator("stb.remove_button", text="Remove", icon="REMOVE")
             if STB_pref.autosave:
                 row = col.row()
                 row.operator("stb.load", text="Load")
                 row2 = row.row(align=True)
                 row2.scale_x = 1.2
-                row2.operator("stb.load_single_button", text="", icon='TEXT')
-                row2.operator("stb.reload", text="", icon='FILE_REFRESH')
-                row2.operator("stb.edit", text="", icon='GREASEPENCIL')
+                row2.operator("stb.load_single_button", text="", icon="TEXT")
+                row2.operator("stb.reload", text="", icon="FILE_REFRESH")
+                row2.operator("stb.edit", text="", icon="GREASEPENCIL")
             else:
                 row = col.row(align=True)
                 row.operator("stb.load", text="Load")
                 row.operator("stb.save", text="Save")
                 row = col.row(align=True)
-                row.operator(
-                    "stb.load_single_button",
-                    text="Load Button",
-                    icon='TEXT'
-                )
+                row.operator("stb.load_single_button", text="Load Button", icon="TEXT")
                 row = col.row(align=True)
-                row.operator("stb.reload", text="Reload", icon='FILE_REFRESH')
-                row.operator("stb.edit", text="Rename", icon='GREASEPENCIL')
+                row.operator("stb.reload", text="Reload", icon="FILE_REFRESH")
+                row.operator("stb.edit", text="Rename", icon="GREASEPENCIL")
             row = col.row(align=True)
-            row.operator("stb.export", text="Export", icon='EXPORT')
-            row.operator("stb.import", text="Import", icon='IMPORT')
+            row.operator("stb.export", text="Export", icon="EXPORT")
+            row.operator("stb.import", text="Import", icon="IMPORT")
+
     STB_PT_ScriptToButton.__name__ = "STB_PT_ScriptToButton_%s" % space_type
 
     class STB_PT_Properties(Panel):
@@ -63,8 +68,8 @@ def panel_factory(space_type):
 
         def draw_header(self, context: Context):
             layout = self.layout
-            layout.alignment = 'RIGHT'
-            layout.operator('stb.add_property', text="", icon='ADD')
+            layout.alignment = "RIGHT"
+            layout.operator("stb.add_property", text="", icon="ADD")
 
         def draw(self, context):
             layout = self.layout
@@ -74,19 +79,22 @@ def panel_factory(space_type):
                 if STB_pref.selected_button == "":
                     layout.label(text="No Properties")
                     return
+                area = context.area.ui_type
                 button = stb[STB_pref.selected_button]
-                sort, back = functions.sort_props(button, 'Panel')
+                is_visible = area in button.areas
+                if not is_visible:
+                    layout.label(text="Selected button is hidden in this Area.")
+                    return
+                sort, back = functions.sort_props(button, "Panel")
                 if not (len(sort) > 0 or len(back) > 0):
                     layout.label(text="No Properties")
                     return
                 functions.draw_sort(sort, back, layout)
+
     STB_PT_Properties.__name__ = "STB_PT_Properties_%s" % space_type
 
     global classes
-    classes += [
-        STB_PT_ScriptToButton,
-        STB_PT_Properties
-    ]
+    classes += [STB_PT_ScriptToButton, STB_PT_Properties]
 
 
 for space in ui_space_types:

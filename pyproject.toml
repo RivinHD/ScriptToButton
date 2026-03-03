@@ -1,0 +1,9 @@
+[project]
+name = "scripttobutton"
+version = "0.1.0"
+description = "Blender Extension that allows to add scripts as buttons."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fake-bpy-module>=20260302",
+]

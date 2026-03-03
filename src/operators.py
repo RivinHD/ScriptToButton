@@ -1,16 +1,23 @@
-import typing
-import bpy
-from bpy.types import Operator, Context, Event, PropertyGroup, UILayout
-from bpy.props import StringProperty, EnumProperty, BoolProperty, CollectionProperty
-from bpy_extras.io_utils import ImportHelper, ExportHelper
-from . functions import get_preferences
-from . import functions
-from . import properties
-import traceback
-import sys
-from os.path import splitext, join
-from types import ModuleType
 import os
+import sys
+import traceback
+from os.path import join, splitext
+from types import ModuleType
+
+import bpy
+from bpy.props import BoolProperty, CollectionProperty, EnumProperty, StringProperty
+from bpy.types import (
+    Context,
+    Event,
+    Operator,
+    OperatorProperties,
+    PropertyGroup,
+    UILayout,
+)
+from bpy_extras.io_utils import ExportHelper, ImportHelper
+
+from . import functions, properties
+from .functions import get_preferences
 
 
 class STB_OT_AddButton(Operator):
@@ -23,16 +30,36 @@ class STB_OT_AddButton(Operator):
     mode: EnumProperty(
         name="Change Mode",
         default="add",
-        items=[
-            ("add", "Add", ""),
-            ("skip", "Skip", "")
-        ]
+        items=[("add", "Add", ""), ("skip", "Skip", "")],
     )
     name: StringProperty(name="Name")
+
+    def set_description(self, value):
+        self["description"] = value
+
+    def get_description(self):
+        value = self.get("description", None)
+        if value is None:
+            if self.show_skip:
+                text_name = self.text
+            else:
+                STB_pref = get_preferences(bpy.context)
+                text_name = STB_pref.texts_list
+            text = bpy.data.texts[text_name].as_string()  # Get selected Text
+            return functions.get_description(text)
+        return value
+
+    description: StringProperty(
+        name="Tooltip",
+        get=get_description,
+        set=set_description,
+        description="Text of the Tooltip of a script.",
+    )
     text: StringProperty(name="Text")
 
     def items_text_list(self, context: Context):
         return [(self.text, self.text, "")]
+
     text_list: EnumProperty(name="Text", items=items_text_list)
 
     all_names = []
@@ -41,25 +68,24 @@ class STB_OT_AddButton(Operator):
         STB_pref = get_preferences(context)
         layout = self.layout
         if self.show_skip:
-            layout.prop(self, 'mode', expand=True)
-        if self.mode == 'skip':
+            layout.prop(self, "mode", expand=True)
+        if self.mode == "skip":
             return
         if self.name in self.all_names:
             box = layout.box()
             box.alert = True
-            box.label(
-                text="\"%s\" will be overwritten" % self.name,
-                icon='ERROR'
-            )
+            box.label(text='"%s" will be overwritten' % self.name, icon="ERROR")
         col = layout.column()
-        col.prop(self, 'name')
+        col.prop(self, "name")
+        col = layout.column()
+        col.prop(self, "description")
         col = layout.column()
         if self.show_skip:
             col.enabled = False
-            col.prop(self, 'text_list')
+            col.prop(self, "text_list")
         else:
             if len(bpy.data.texts):
-                col.prop(STB_pref, 'texts_list')
+                col.prop(STB_pref, "texts_list")
             else:
                 col.label(text="No Text available", icon="ERROR")
 
@@ -74,22 +100,22 @@ class STB_OT_AddButton(Operator):
         txt = STB_pref.texts_list
         if self.show_skip:
             txt = self.text
-        if self.mode == 'skip':
+        if self.mode == "skip":
             return {"FINISHED"}
-        if self.name == '':
-            self.report({'ERROR'}, "You need a name for the Button")
+        if self.name == "":
+            self.report({"ERROR"}, "You need a name for the Button")
             return {"FINISHED"}
         elif self.name in self.all_names:
-            self.report({'INFO'}, "%s has been overwritten" % txt)
-        elif STB_pref.texts_list == '':
-            self.report({'ERROR'}, "You need to select a Text")
+            self.report({"INFO"}, "%s has been overwritten" % txt)
+        elif STB_pref.texts_list == "":
+            self.report({"ERROR"}, "You need to select a Text")
             return {"FINISHED"}
-        fails = functions.add_button(context, self.name, txt)
+        fails = functions.add_button(context, self.name, txt, self.description)
         if len(fails[0]) or len(fails[1]):
             self.report(
-                {'ERROR'},
-                "Not all Areas or Properties could be added because the Syntax is invalid: %s" % (
-                    functions.create_fail_message(fails))
+                {"ERROR"},
+                "Not all Areas or Properties could be added because the Syntax is invalid: %s"
+                % (functions.create_fail_message(fails)),
             )
         context.area.tag_redraw()
         return {"FINISHED"}
@@ -102,13 +128,25 @@ class STB_OT_ScriptButton(Operator):
 
     name: StringProperty()
 
+    @classmethod
+    def description(
+        cls, context: Context, properties: OperatorProperties | None
+    ) -> str:
+        name = properties.get("name")
+        buttons = context.scene.stb
+        prop = buttons.get(name)
+        if prop is None:
+            return "{No script documentation}"
+        else:
+            return prop.description
+
     def draw(self, context: Context):
         layout = self.layout
         stb = context.scene.stb
         STB_pref = get_preferences(context)
         if len(stb):
             button = stb[STB_pref.selected_button]
-            sort, back = functions.sort_props(button, 'Dialog')
+            sort, back = functions.sort_props(button, "Dialog")
             if len(sort) > 0 or len(back) > 0:
                 functions.draw_sort(sort, back, layout)
             else:
@@ -118,7 +156,7 @@ class STB_OT_ScriptButton(Operator):
         stb = context.scene.stb
         if len(stb):
             button = stb[self.name]
-            sort, back = functions.sort_props(button, 'Dialog')
+            sort, back = functions.sort_props(button, "Dialog")
             if len(sort) > 0 or len(back) > 0:
                 return bpy.context.window_manager.invoke_props_dialog(self)
             else:
@@ -135,10 +173,9 @@ class STB_OT_ScriptButton(Operator):
             # similar to text.as_module() -> internal Blender function see ..\scripts\modules\bpy_types.py
             name = text.name
             mod = ModuleType(splitext(name)[0])
-            mod.__dict__.update({
-                "__file__": join(bpy.data.filepath, name),
-                "__name__": "__main__"
-            })
+            mod.__dict__.update(
+                {"__file__": join(bpy.data.filepath, name), "__name__": "__main__"}
+            )
             exec(text.as_string(), mod.__dict__)
 
             if STb_pref.delete_script_after_run:
@@ -146,18 +183,16 @@ class STB_OT_ScriptButton(Operator):
         except Exception:
             error = traceback.format_exception(*sys.exc_info())
             # corrects the filename of the exception to the text name, otherwise "<string>"
-            error_split = error[3].replace('"<string>"', '').split(',')
-            error[3] = '%s "%s",%s' % (
-                error_split[0], text.name, error_split[1])
+            error_split = error[3].replace('"<string>"', "").split(",")
+            error[3] = '%s "%s",%s' % (error_split[0], text.name, error_split[1])
             # removes exec(self.as_string(), mod.__dict__)
             error.pop(1)
             error = "".join(error)
             if error:
-                self.report(
-                    {'ERROR'}, "The linked Script is not working\n\n%s" % error)
+                self.report({"ERROR"}, "The linked Script is not working\n\n%s" % error)
             if STb_pref.delete_script_after_run:
                 bpy.data.texts.remove(text)
-            return {'CANCELLED'}
+            return {"CANCELLED"}
         return {"FINISHED"}
 
 
@@ -170,12 +205,12 @@ class STB_OT_RemoveButton(Operator):
     delete_file: BoolProperty(
         name="Delete File",
         description="Deletes the saved .py in the Storage",
-        default=True
+        default=True,
     )
     delete_text: BoolProperty(
         name="Delete Text",
         description="Deletes the linked Text in the Texteditor",
-        default=True
+        default=True,
     )
 
     @classmethod
@@ -186,12 +221,12 @@ class STB_OT_RemoveButton(Operator):
     def draw(self, context: Context):
         STB_pref = get_preferences(context)
         layout = self.layout
-        layout.prop(self, 'delete_file', text="Delete File")
+        layout.prop(self, "delete_file", text="Delete File")
         row = layout.row()
         text_enabled = bpy.data.texts.find(STB_pref.selected_button) != -1
         row.enabled = text_enabled
         self.deleteText = text_enabled
-        row.prop(self, 'delete_text', text="Delete Text", toggle=False)
+        row.prop(self, "delete_text", text="Delete Text", toggle=False)
 
     def invoke(self, context: Context, event: Event):
         return context.window_manager.invoke_props_dialog(self)
@@ -213,17 +248,16 @@ class STB_OT_Load(Operator):
         description="Change the Mode which to load",
         items=[
             ("file", "Load from Disk", ""),
-            ("texteditor", "Load from Texteditor", "")
-        ]
+            ("texteditor", "Load from Texteditor", ""),
+        ],
     )
     all: BoolProperty(
         name="Load all",
         description="Load all Buttons from the Texteditor",
-        default=False
+        default=False,
     )
     texts: CollectionProperty(
-        type=properties.STB_text_property,
-        name="Texts in Texteditor"
+        type=properties.STB_text_property, name="Texts in Texteditor"
     )
 
     @classmethod
@@ -233,7 +267,7 @@ class STB_OT_Load(Operator):
 
     def draw(self, context: Context):
         layout = self.layout
-        layout.prop(self, 'mode', expand=True)
+        layout.prop(self, "mode", expand=True)
         if self.mode == "file":
             # File -------------------------------------------
             box = layout.box()
@@ -241,19 +275,18 @@ class STB_OT_Load(Operator):
             col.scale_y = 0.8
             col.label(text="It will delete all your current Buttons", icon="INFO")
             col.label(
-                text="and replace it with the Buttons from the Disk",
-                icon="BLANK1"
+                text="and replace it with the Buttons from the Disk", icon="BLANK1"
             )
         else:
             # Texteditor -------------------------------------
             box = layout.box()
-            box.prop(self, 'all', text="Load All", toggle=True)
+            box.prop(self, "all", text="Load All", toggle=True)
             if self.all:
                 for text in self.texts:
-                    box.label(text=text.name, icon='CHECKBOX_HLT')
+                    box.label(text=text.name, icon="CHECKBOX_HLT")
             else:
                 for text in self.Texts:
-                    box.prop(text, 'select', text=text.name)
+                    box.prop(text, "select", text=text.name)
 
     def invoke(self, context: Context, event: Event):
         self.texts.clear()
@@ -274,8 +307,9 @@ class STB_OT_Load(Operator):
                 message += functions.create_fail_message(fail)
         if message != "\n":
             self.report(
-                {'ERROR'},
-                "Not all Areas or Properties could be added because the Syntax is invalid: %s" % message
+                {"ERROR"},
+                "Not all Areas or Properties could be added because the Syntax is invalid: %s"
+                % message,
             )
         context.area.tag_redraw()
         return {"FINISHED"}
@@ -299,27 +333,28 @@ class STB_OT_Reload(Operator):
         if text_index != -1:
             if STB_pref.autosave:
                 functions.save_text(
-                    bpy.data.texts[text_index],
-                    STB_pref.selected_button
+                    bpy.data.texts[text_index], STB_pref.selected_button
                 )
             fails = functions.reload_button_text(
                 stb[STB_pref.selected_button],
                 bpy.data.texts[text_index].as_string(),
-                context.scene
+                context.scene,
             )
             if len(fails[0]) or len(fails[1]):
                 self.report(
-                    {'ERROR'},
-                    "Not all Areas or Properties could be added because the Syntax is invalid: %s" % (
-                        functions.create_fail_message(fails))
+                    {"ERROR"},
+                    "Not all Areas or Properties could be added because the Syntax is invalid: %s"
+                    % (functions.create_fail_message(fails)),
                 )
         else:
             self.report(
-                {'ERROR'},
-                ("%s could not be reloaded, linked Text in Texteditor don't exist.\n"
-                 "\n"
-                 "INFO: The linked Text must have the same name as the Button"
-                 ) % STB_pref.selected_button
+                {"ERROR"},
+                (
+                    "%s could not be reloaded, linked Text in Texteditor don't exist.\n"
+                    "\n"
+                    "INFO: The linked Text must have the same name as the Button"
+                )
+                % STB_pref.selected_button,
             )
         context.area.tag_redraw()
         return {"FINISHED"}
@@ -346,7 +381,7 @@ class STB_OT_Save(Operator):
             error_text = "Not all Scripts could be saved:"
             for fail in Fails:
                 error_text += "\n%s could not be saved, linked Text is missing" % fail
-            self.report({'ERROR'}, error_text)
+            self.report({"ERROR"}, error_text)
         return {"FINISHED"}
 
 
@@ -368,10 +403,7 @@ class STB_OT_Export(Operator, ExportHelper):
             button["export_all"] = value
 
     all: BoolProperty(
-        name="All",
-        description="Export all Buttons",
-        get=get_all,
-        set=set_all
+        name="All", description="Export all Buttons", get=get_all, set=set_all
     )
 
     def get_mode(self):
@@ -384,22 +416,16 @@ class STB_OT_Export(Operator, ExportHelper):
 
     mode: EnumProperty(
         name="Mode",
-        items=[
-            ("py", "Export as .py Files", ""),
-            ("zip", "Export as .zip File", "")
-        ],
+        items=[("py", "Export as .py Files", ""), ("zip", "Export as .zip File", "")],
         get=get_mode,
-        set=set_mode
+        set=set_mode,
     )
 
     def get_filter_glob(self):
         return "*.zip" * (self.mode == "zip")
 
     filter_glob: StringProperty(
-        default='*.zip',
-        options={'HIDDEN'},
-        maxlen=255,
-        get=get_filter_glob
+        default="*.zip", options={"HIDDEN"}, maxlen=255, get=get_filter_glob
     )
 
     def get_filename_ext(self):
@@ -422,11 +448,11 @@ class STB_OT_Export(Operator, ExportHelper):
 
     def draw(self, context: Context):
         layout = self.layout
-        layout.prop(self, 'mode', expand=True)
+        layout.prop(self, "mode", expand=True)
         box = layout.box()
-        box.prop(self, 'all')
+        box.prop(self, "all")
         for button in self.export_buttons:
-            box.prop(button, 'use', text=button.name)
+            box.prop(button, "use", text=button.name)
 
     def invoke(self, context: Context, event: Event):
         super().invoke(context, event)
@@ -434,22 +460,20 @@ class STB_OT_Export(Operator, ExportHelper):
         for button in context.scene.stb:
             new = self.export_buttons.add()
             new.name = button.name
-        return {'RUNNING_MODAL'}
+        return {"RUNNING_MODAL"}
 
     def execute(self, context: Context):
         if self.mode == "py":
             if not os.path.isdir(self.directory):
-                self.report({'ERROR'}, "The given directory does not exists")
-                return {'CANCELLED'}
+                self.report({"ERROR"}, "The given directory does not exists")
+                return {"CANCELLED"}
             self.filepath = self.directory
         else:
             if not self.filepath.endswith(".zip"):
-                self.report({'ERROR'}, "The given filepath is not a .zip file")
-                return {'CANCELLED'}
+                self.report({"ERROR"}, "The given filepath is not a .zip file")
+                return {"CANCELLED"}
         functions.export(
-            self.mode,
-            filter(lambda x: x.use, self.export_buttons),
-            self.filepath
+            self.mode, filter(lambda x: x.use, self.export_buttons), self.filepath
         )
         return {"FINISHED"}
 
@@ -459,11 +483,7 @@ class STB_OT_Import(Operator, ImportHelper):
     bl_label = "Import"
     bl_description = "Import the selected Files"
 
-    filter_glob: StringProperty(
-        default='*.zip;*.py',
-        options={'HIDDEN'},
-        maxlen=255
-    )
+    filter_glob: StringProperty(default="*.zip;*.py", options={"HIDDEN"}, maxlen=255)
     files: CollectionProperty(type=PropertyGroup)
 
     @classmethod
@@ -478,15 +498,13 @@ class STB_OT_Import(Operator, ImportHelper):
         for file in self.files:
             if file.name.endswith(".zip"):
                 zip_fails = functions.import_zip(
-                    os.path.join(directory, file.name),
-                    context
+                    os.path.join(directory, file.name), context
                 )
                 button_fails[0].extend(zip_fails[0])
                 button_fails[1].extend(zip_fails[1])
             elif file.name.endswith(".py"):
                 py_fail = functions.import_py(
-                    os.path.join(directory, file.name),
-                    context
+                    os.path.join(directory, file.name), context
                 )
                 button_fails[0].extend(py_fail[0])
                 button_fails[1].append(py_fail[1])
@@ -508,11 +526,11 @@ class STB_OT_Import(Operator, ImportHelper):
                 has_fail_message = True
 
         if has_message and has_fail_message:
-            self.report({'ERROR'}, "%s\n\n%s" % (message, fail_message))
+            self.report({"ERROR"}, "%s\n\n%s" % (message, fail_message))
         elif has_message:
-            self.report({'ERROR'}, message)
+            self.report({"ERROR"}, message)
         elif has_fail_message:
-            self.report({'ERROR'}, fail_message)
+            self.report({"ERROR"}, fail_message)
         context.area.tag_redraw()
         return {"FINISHED"}
 
@@ -524,29 +542,31 @@ class STB_OT_Edit(Operator):
     bl_options = {"UNDO"}
 
     area_items = [  # (identifier, name, description, icon, value)
-        ('', 'General', '', ''),
-        ('3D_Viewport', '3D Viewport', '', 'VIEW3D'),
-        ('Image_Editor', 'Image Editor', '', 'IMAGE'),
-        ('UV_Editor', 'UV Editor', '', 'UV'),
-        ('Compositor', 'Compositor', '', 'NODE_COMPOSITING'),
-        ('Texture_Node_Editor', 'Texture Node Editor', '', 'NODE_TEXTURE'),
-        ('Geomerty_Node_Editor', 'Geomerty Node Editor', '', 'NODETREE'),
-        ('Shader_Editor', 'Shader Editor', '', 'NODE_MATERIAL'),
-        ('Video_Sequencer', 'Video Sequencer', '', 'SEQUENCE'),
-        ('Movie_Clip_Editor', 'Movie Clip Editor', '', 'TRACKER'),
-
-        ('', 'Animation', '', ''),
-        ('Dope_Sheet', 'Dope Sheet', '', 'ACTION'),
-        ('Timeline', 'Timeline', '', 'TIME'),
-        ('Graph_Editor', 'Graph Editor', '', 'GRAPH'),
-        ('Drivers', 'Drivers', '', 'DRIVER'),
-        ('Nonlinear_Animation', 'Nonlinear Animation', '', 'NLA'),
-
-        ('', 'Scripting', '', ''),
-        ('Text_Editor', 'Text Editor', '', 'TEXT')
+        ("", "General", "", ""),
+        ("3D_Viewport", "3D Viewport", "", "VIEW3D"),
+        ("Image_Editor", "Image Editor", "", "IMAGE"),
+        ("UV_Editor", "UV Editor", "", "UV"),
+        ("Compositor", "Compositor", "", "NODE_COMPOSITING"),
+        ("Texture_Node_Editor", "Texture Node Editor", "", "NODE_TEXTURE"),
+        ("Geomerty_Node_Editor", "Geomerty Node Editor", "", "NODETREE"),
+        ("Shader_Editor", "Shader Editor", "", "NODE_MATERIAL"),
+        ("Video_Sequencer", "Video Sequencer", "", "SEQUENCE"),
+        ("Movie_Clip_Editor", "Movie Clip Editor", "", "TRACKER"),
+        ("", "Animation", "", ""),
+        ("Dope_Sheet", "Dope Sheet", "", "ACTION"),
+        ("Timeline", "Timeline", "", "TIME"),
+        ("Graph_Editor", "Graph Editor", "", "GRAPH"),
+        ("Drivers", "Drivers", "", "DRIVER"),
+        ("Nonlinear_Animation", "Nonlinear Animation", "", "NLA"),
+        ("", "Scripting", "", ""),
+        ("Text_Editor", "Text Editor", "", "TEXT"),
     ]
 
     name: StringProperty(name="Name")
+    description: StringProperty(
+        name="Tooltip",
+        description="Text of the Tooltip of a script.",
+    )
     stb_properties: CollectionProperty(type=properties.STB_edit_property_item)
 
     @classmethod
@@ -560,18 +580,17 @@ class STB_OT_Edit(Operator):
                 self.stb_areas.remove(self.stb_areas.find(item.name))
         used_areas = set(area.name for area in self.stb_areas)
         areas = []
-        for i, (identifier, name, description, icon) in enumerate(STB_OT_Edit.area_items):
+        for i, (identifier, name, description, icon) in enumerate(
+            STB_OT_Edit.area_items
+        ):
             if identifier in used_areas:
                 continue
-            areas.append((
-                identifier,
-                name,
-                description,
-                icon,
-                i * (identifier != '') - 1
-            ))
+            areas.append(
+                (identifier, name, description, icon, i * (identifier != "") - 1)
+            )
         return areas
-    stb_select_area: EnumProperty(items=items_stb_select_area, default=0)
+
+    stb_select_area: EnumProperty(name="Area", items=items_stb_select_area, default=0)
     stb_areas: CollectionProperty(type=properties.STB_edit_area_item)
 
     def get_add_area(self):
@@ -579,9 +598,9 @@ class STB_OT_Edit(Operator):
 
     def set_add_area(self, value):
         identifier = self.stb_select_area
-        icon = UILayout.enum_item_icon(self, 'stb_select_area', identifier)
-        label = UILayout.enum_item_name(self, 'stb_select_area', identifier)
-        if identifier == '':
+        icon = UILayout.enum_item_icon(self, "stb_select_area", identifier)
+        label = UILayout.enum_item_name(self, "stb_select_area", identifier)
+        if identifier == "":
             return
         new = self.stb_areas.add()
         new.name = identifier
@@ -589,29 +608,31 @@ class STB_OT_Edit(Operator):
         new.icon = icon
         items = STB_OT_Edit.items_stb_select_area(self, bpy.context)
         for item in items:
-            if item[0] == '':
+            if item[0] == "":
                 continue
             self.stb_select_area = item[0]
             break
+
     add_area: BoolProperty(default=False, get=get_add_area, set=set_add_area)
 
     def draw(self, context: Context):
         layout = self.layout
-        layout.prop(self, 'name')
+        layout.prop(self, "name")
+        layout.prop(self, "description")
 
         layout.separator(factor=0.5)
         layout.label(text="Areas")
         row = layout.row(align=True)
-        row.prop(self, 'stb_select_area')
-        row.prop(self, 'add_area', icon="ADD", icon_only=True)
+        row.prop(self, "stb_select_area")
+        row.prop(self, "add_area", icon="ADD", icon_only=True)
         box = layout.box()
         if len(self.stb_areas):
             for area in filter(lambda x: not x.delete, self.stb_areas):
                 row = box.row()
                 row.label(text=area.label, icon_value=area.icon)
-                row.prop(area, 'delete', icon='X', icon_only=True, emboss=False)
+                row.prop(area, "delete", icon="X", icon_only=True, emboss=False)
         else:
-            box.label(text="All Areas", icon='RESTRICT_COLOR_ON')
+            box.label(text="All Areas", icon="RESTRICT_COLOR_ON")
 
         properties = list(filter(lambda x: not x.use_delete, self.stb_properties))
         if len(properties):
@@ -621,15 +642,36 @@ class STB_OT_Edit(Operator):
             for prop in properties:
                 row = box.row()
                 row.label(text=f"{prop.name} [Ln {prop.line}]")
-                row.prop(prop, 'use_delete', icon='X', icon_only=True, emboss=False)
+                row.prop(prop, "use_delete", icon="X", icon_only=True, emboss=False)
 
     def invoke(self, context, event):
         STB_pref = get_preferences(context)
         stb = context.scene.stb
         button = stb[STB_pref.selected_button]
         self.name = button.name
+        self.description = button.description
         self.stb_properties.clear()
         self.stb_areas.clear()
+        used_areas = set(
+            functions.AREA_PARSE_DICT_INVERSE.get(area.area) for area in button.areas
+        )
+        for i, (identifier, _, _, _) in enumerate(STB_OT_Edit.area_items):
+            if identifier not in used_areas:
+                continue
+            icon = UILayout.enum_item_icon(self, "stb_select_area", identifier)
+            label = UILayout.enum_item_name(self, "stb_select_area", identifier)
+            new = self.stb_areas.add()
+            new.name = identifier
+            new.label = label
+            new.icon = icon
+
+        # Update area items
+        items = STB_OT_Edit.items_stb_select_area(self, bpy.context)
+        for item in items:
+            if item[0] == "":
+                continue
+            self.stb_select_area = item[0]
+
         for prop in functions.get_all_properties(button):
             new = self.stb_properties.add()
             new.name = prop.name
@@ -641,6 +683,7 @@ class STB_OT_Edit(Operator):
         functions.rename(context, self.name)
 
         STB_pref = get_preferences(context)
+        button: STB_button_properties = context.scene.stb[STB_pref.selected_button]
         property_changed = False
 
         text_index = bpy.data.texts.find(STB_pref.selected_button)
@@ -654,12 +697,26 @@ class STB_OT_Edit(Operator):
         if len(self.stb_areas):
             property_changed = True
             if lines[0].strip().startswith("#STB"):
-                line = lines[0]
-                line += " /// "
+                line = ""
             else:
                 line = ""
                 lines.insert(0, line)
             line += " /// ".join(map(lambda x: "#STB-Area-%s" % x.name, self.stb_areas))
+            lines[0] = line
+
+        if button.description != self.description:
+            property_changed = True
+            button.description = self.description
+            escaped_description = self.description.replace('"', '\\"')
+            if lines[0].strip().startswith("#STB-Area"):
+                line = lines[0]
+                line += " /// "
+            elif lines[0].strip().startswith("#STB-Tooltip"):
+                line = ""
+            else:
+                line = ""
+                lines.insert(0, line)
+            line += f'#STB-Tooltip-"{escaped_description}"'
             lines[0] = line
 
         edited_lines = []
@@ -673,13 +730,14 @@ class STB_OT_Edit(Operator):
             if (init_start_position := line.find("#STB-InitValue-")) != -1:
                 init_start_position += len("#STB-InitValue-")
                 init_end_position = line.find("-END", init_start_position)
-                init_value = line[init_start_position: init_end_position]
+                init_value = line[init_start_position:init_end_position]
                 lines[prop.line] = "%s= %s" % (prop.linename, init_value)
 
             and_position = line.find("///", line_start)
             end_position = line.find("#STB", and_position)
-            while ((and_next := line.find("///", end_position)) != -1
-                   and (end_next := line.find("#STB", and_next)) != -1):
+            while (and_next := line.find("///", end_position)) != -1 and (
+                end_next := line.find("#STB", and_next)
+            ) != -1:
                 and_position = and_next
                 end_position = end_next
 
@@ -733,8 +791,7 @@ class STB_OT_AddProperty(Operator):
     bl_description = "Add a variable from the script as a property"
 
     text_variables: CollectionProperty(
-        type=properties.STB_add_property_item,
-        options={'HIDDEN'}
+        type=properties.STB_add_property_item, options={"HIDDEN"}
     )
 
     def text_properties_items(self, context):
@@ -742,25 +799,32 @@ class STB_OT_AddProperty(Operator):
             (str(i), f"{item.line} [Ln {item.position}]", "")
             for i, item in enumerate(self.text_variables)
         ]
-    text_properties: EnumProperty(
-        items=text_properties_items,
-        options={'HIDDEN'}
-    )
+
+    text_properties: EnumProperty(items=text_properties_items, options={"HIDDEN"})
     space: EnumProperty(
         items=[
             ("Panel", "Panel", "Show this property in the Panel"),
-            ("Dialog", "Dialog",
-             "Show this property in a Dialog when the script is executed"),
-            ("PanelDialog", "Panel & Dialog",
-             "Show this property in the Panel and Dialog")
+            (
+                "Dialog",
+                "Dialog",
+                "Show this property in a Dialog when the script is executed",
+            ),
+            (
+                "PanelDialog",
+                "Panel & Dialog",
+                "Show this property in the Panel and Dialog",
+            ),
         ],
-        options={'HIDDEN'}
+        options={"HIDDEN"},
     )
 
     @classmethod
     def poll(cls, context: Context):
         STB_pref = get_preferences(context)
-        return STB_pref.selected_button != ""
+        area = context.area.ui_type
+        button = context.scene.stb[STB_pref.selected_button]
+        is_visible = area in button.areas
+        return STB_pref.selected_button != "" and is_visible
 
     def invoke(self, context: Context, event: Event):
         STB_pref = get_preferences(context)
@@ -774,7 +838,9 @@ class STB_OT_AddProperty(Operator):
         if len(items) != 0:
             self.text_properties = items[0][0]
         self.text_variables.clear()
-        for position, line, value, bl_type in functions.get_all_variables(text.as_string()):
+        for position, line, value, bl_type in functions.get_all_variables(
+            text.as_string()
+        ):
             var = self.text_variables.add()
             var.position = position
             var.line = line
@@ -787,12 +853,12 @@ class STB_OT_AddProperty(Operator):
         if len(self.text_properties_items(context)) == 0:
             layout.label(text="No Property to add")
             return
-        layout.prop(self, 'text_properties', text="Property")
-        layout.prop(self, 'space', text="Space")
+        layout.prop(self, "text_properties", text="Property")
+        layout.prop(self, "space", text="Space")
 
     def execute(self, context: Context):
         if self.text_properties == "":
-            return {'CANCELLED'}
+            return {"CANCELLED"}
         STB_pref = get_preferences(context)
         text = bpy.data.texts[STB_pref.selected_button]
         index = int(self.text_properties)
@@ -801,14 +867,15 @@ class STB_OT_AddProperty(Operator):
         if self.space == "PanelDialog":
             insert_comment = (
                 f"#STB-Input-Panel-{item.type} /// #STB-Input-Dialog-{item.type} /// #STB-InitValue-"
-                + f"{item.value}-END")
+                + f"{item.value}-END"
+            )
         else:
             insert_comment = f"#STB-Input-{self.space}-{item.type} /// #STB-InitValue-{item.value}-END"
         lines.insert(item.position, insert_comment)
         text.clear()
         text.write("\n".join(lines))
         bpy.ops.stb.reload()
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 classes = [
@@ -822,7 +889,7 @@ classes = [
     STB_OT_Import,
     STB_OT_Edit,
     STB_OT_LoadSingleButton,
-    STB_OT_AddProperty
+    STB_OT_AddProperty,
 ]
 
 

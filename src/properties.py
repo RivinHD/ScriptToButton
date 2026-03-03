@@ -1,12 +1,19 @@
-import bpy
-from bpy.types import PropertyGroup
-from bpy.props import (
-    StringProperty, IntProperty, FloatProperty, BoolProperty, EnumProperty, CollectionProperty,
-    PointerProperty
-)
-from .functions import update_text
-from . import functions
 from contextlib import suppress
+
+import bpy
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import PropertyGroup
+
+from . import functions
+from .functions import update_text
 
 classes = []
 
@@ -19,14 +26,13 @@ class STB_property:
 
 
 class STB_property_string(STB_property, PropertyGroup):
-
     def update_prop(self, context):
         txt = self.prop.replace('"', '\\"').replace("'", "\\'")
         update_text(
             self.line,
             self.linename,
             '"%s"' % txt,
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     def set_prop(self, value):
@@ -45,7 +51,7 @@ class STB_property_int(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     def set_prop(self, value):
@@ -64,7 +70,7 @@ class STB_property_float(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     def set_prop(self, value):
@@ -83,7 +89,7 @@ class STB_property_bool(STB_property, PropertyGroup):
             self.line,
             self.linename,
             self.prop,
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     def set_prop(self, value):
@@ -101,7 +107,6 @@ class STB_enum_item(PropertyGroup):
 
 
 class STB_property_enum(STB_property, PropertyGroup):
-
     def prop_items(self, context):
         return functions.list_to_enum_items([item.item for item in self.items])
 
@@ -110,7 +115,7 @@ class STB_property_enum(STB_property, PropertyGroup):
             self.line,
             self.linename,
             [self.prop, [item.item for item in self.items]],
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     prop: EnumProperty(items=prop_items, update=update_prop)
@@ -135,7 +140,7 @@ class STB_enum_property(PropertyGroup):
             prop.line,
             prop.linename,
             [functions.type_getter(ele, ele.ptype) for ele in prop.prop],
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     prop: EnumProperty(items=prop_items, update=prop_update)
@@ -143,7 +148,6 @@ class STB_enum_property(PropertyGroup):
 
 
 class STB_property_list_item(PropertyGroup):
-
     def update_prop(self, context):
         split = self.path_from_id().split(".")
         if len(split) > 1:
@@ -154,7 +158,7 @@ class STB_property_list_item(PropertyGroup):
             prop.line,
             prop.linename,
             [functions.type_getter(ele, ele.ptype) for ele in prop.prop],
-            eval("context.scene.%s" % self.path_from_id().split(".")[0])
+            eval("context.scene.%s" % self.path_from_id().split(".")[0]),
         )
 
     str_prop: StringProperty(update=update_prop)
@@ -181,9 +185,10 @@ class STB_property_object(STB_property, PropertyGroup):
         update_text(
             self.line,
             self.linename,
-            "bpy.data.objects['%s']" % self.prop if self.prop != '' else "''",
-            eval("bpy.context.scene." + self.path_from_id().split(".")[0])
+            "bpy.data.objects['%s']" % self.prop if self.prop != "" else "''",
+            eval("bpy.context.scene." + self.path_from_id().split(".")[0]),
         )
+
     prop: StringProperty(update=update_prop)
 
 
@@ -192,7 +197,6 @@ class STB_button_area(PropertyGroup):
 
 
 class STB_button_properties(PropertyGroup):
-
     def get_selected(self) -> bool:
         """
         default Blender property getter
@@ -214,18 +218,18 @@ class STB_button_properties(PropertyGroup):
         # implementation similar to a UIList (only one selection of all can be active)
         if value:
             scene["stb_button.selected_name"] = self.name
-            self['selected'] = value
+            self["selected"] = value
             button = scene.stb.get(selected_name, None)
             if button:
                 button.selected = False
         elif selected_name != self.name:
-            self['selected'] = value
+            self["selected"] = value
 
     selected: BoolProperty(
-        name='Select',
-        description='Select this Button',
+        name="Select",
+        description="Select this Button",
         get=get_selected,
-        set=set_selected
+        set=set_selected,
     )
     StringProps: CollectionProperty(type=STB_property_string)
     IntProps: CollectionProperty(type=STB_property_int)
@@ -239,6 +243,7 @@ class STB_button_properties(PropertyGroup):
     ObjectProps: CollectionProperty(type=STB_property_object)
     areas: CollectionProperty(type=STB_button_area)
     panel: StringProperty(default="Button")
+    description: StringProperty(default="{No script documentation}")
 
 
 class STB_text_property(PropertyGroup):
@@ -255,7 +260,7 @@ class STB_export_button(PropertyGroup):
         Returns:
             bool: button export state
         """
-        return self.get("use", True) or self.get('export_all', False)
+        return self.get("use", True) or self.get("export_all", False)
 
     def set_use(self, value: bool) -> None:
         """
@@ -264,15 +269,15 @@ class STB_export_button(PropertyGroup):
         Args:
             value (bool): button export state
         """
-        if not self.get('export_all', False):
-            self['use'] = value
+        if not self.get("export_all", False):
+            self["use"] = value
 
     use: BoolProperty(
         default=True,
         name="Import Button",
         description="Decide whether to export the button",
         get=get_use,
-        set=set_use
+        set=set_use,
     )
 
 
@@ -315,7 +320,7 @@ classes = [
     STB_export_button,
     STB_add_property_item,
     STB_edit_property_item,
-    STB_edit_area_item
+    STB_edit_area_item,
 ]
 
 

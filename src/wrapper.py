@@ -7,13 +7,13 @@
 # - 3.6 LTS
 # ===============================================================================
 
+import os
+
 import bpy
 from bpy.app import version
 
-import os
 
-
-def get_user_path(package: str, path: str = '', create: bool = False):
+def get_user_path(package: str, path: str = "", create: bool = False):
     """
     Return a user writable directory associated with an extension.
 
@@ -30,9 +30,13 @@ def get_user_path(package: str, path: str = '', create: bool = False):
             return fallback  # The Fallback path is also the extension user directory for Blender 3.6 LTS.
     except ValueError as err:
         print("ERROR STB: ValueError: %s" % str(err))
-        if err.args[0] == "The \"package\" does not name an extension":
-            print("--> This error might be caused as the addon is installed the first time.")
-            print("    If this errors remains please try reinstalling the Add-on and report it to the developer.")
+        if err.args[0] == 'The "package" does not name an extension':
+            print(
+                "--> This error might be caused as the addon is installed the first time."
+            )
+            print(
+                "    If this errors remains please try reinstalling the Add-on and report it to the developer."
+            )
 
         print("    Fallback to old extension directory: %s." % fallback)
         return fallback
