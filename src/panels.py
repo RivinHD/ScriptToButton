@@ -81,7 +81,7 @@ def panel_factory(space_type):
                     return
                 area = context.area.ui_type
                 button = stb[STB_pref.selected_button]
-                is_visible = area in button.areas
+                is_visible = len(button.areas) == 0 or area in button.areas
                 if not is_visible:
                     layout.label(text="Selected button is hidden in this Area.")
                     return

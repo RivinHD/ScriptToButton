@@ -45,8 +45,11 @@ class STB_OT_AddButton(Operator):
             else:
                 STB_pref = get_preferences(bpy.context)
                 text_name = STB_pref.texts_list
-            text = bpy.data.texts[text_name].as_string()  # Get selected Text
-            return functions.get_description(text)
+            if bpy.data.texts.find(text_name) != -1:
+                text = bpy.data.texts[text_name].as_string()  # Get selected Text
+                return functions.get_description(text)
+            else:
+                return ""
         return value
 
     description: StringProperty(
@@ -110,6 +113,7 @@ class STB_OT_AddButton(Operator):
         elif STB_pref.texts_list == "":
             self.report({"ERROR"}, "You need to select a Text")
             return {"FINISHED"}
+
         fails = functions.add_button(context, self.name, txt, self.description)
         if len(fails[0]) or len(fails[1]):
             self.report(
@@ -684,7 +688,6 @@ class STB_OT_Edit(Operator):
 
         STB_pref = get_preferences(context)
         button: STB_button_properties = context.scene.stb[STB_pref.selected_button]
-        property_changed = False
 
         text_index = bpy.data.texts.find(STB_pref.selected_button)
         if text_index == -1:
@@ -693,35 +696,28 @@ class STB_OT_Edit(Operator):
         else:
             text = bpy.data.texts[text_index]
         lines = [line.body for line in text.lines]
+        first_line = ""
 
         if len(self.stb_areas):
-            property_changed = True
-            if lines[0].strip().startswith("#STB"):
-                line = ""
-            else:
-                line = ""
-                lines.insert(0, line)
-            line += " /// ".join(map(lambda x: "#STB-Area-%s" % x.name, self.stb_areas))
-            lines[0] = line
+            if not (lines[0].strip() == "" or lines[0].strip().startswith("#STB")):
+                lines.insert(0, first_line)
+            first_line += " /// ".join(
+                map(lambda x: "#STB-Area-%s" % x.name, self.stb_areas)
+            )
 
-        if button.description != self.description:
-            property_changed = True
-            button.description = self.description
-            escaped_description = self.description.replace('"', '\\"')
-            if lines[0].strip().startswith("#STB-Area"):
-                line = lines[0]
-                line += " /// "
-            elif lines[0].strip().startswith("#STB-Tooltip"):
-                line = ""
-            else:
-                line = ""
-                lines.insert(0, line)
-            line += f'#STB-Tooltip-"{escaped_description}"'
-            lines[0] = line
+        button.description = self.description
+        escaped_description = self.description.replace('"', '\\"')
+        if first_line != "":
+            first_line += " /// "
+        elif not (lines[0].strip() == "" or lines[0].strip().startswith("#STB")):
+            lines.insert(0, first_line)
+        first_line += f'#STB-Tooltip-"{escaped_description}"'
+
+        if first_line != "":
+            lines[0] = first_line
 
         edited_lines = []
         for prop in filter(lambda x: x.use_delete, self.stb_properties):
-            property_changed = True
             line: str = lines[prop.line - 1]
             line_start = line.find("#STB")
             if line_start == -1:
@@ -759,10 +755,9 @@ class STB_OT_Edit(Operator):
             if line.strip() == "":
                 lines.pop(i)
 
-        if property_changed:
-            text.clear()
-            text.write("\n".join(lines))
-            bpy.ops.stb.reload()
+        text.clear()
+        text.write("\n".join(lines))
+        bpy.ops.stb.reload()
         context.area.tag_redraw()
         return {"FINISHED"}
 
@@ -821,10 +816,12 @@ class STB_OT_AddProperty(Operator):
     @classmethod
     def poll(cls, context: Context):
         STB_pref = get_preferences(context)
-        area = context.area.ui_type
-        button = context.scene.stb[STB_pref.selected_button]
-        is_visible = area in button.areas
-        return STB_pref.selected_button != "" and is_visible
+        if STB_pref.selected_button != "":
+            button = context.scene.stb[STB_pref.selected_button]
+            area = context.area.ui_type
+            is_visible = len(button.areas) == 0 or area in button.areas
+            return is_visible
+        return False
 
     def invoke(self, context: Context, event: Event):
         STB_pref = get_preferences(context)

@@ -22,17 +22,6 @@ else:
 
 classes = []
 NotOneStart = [False]
-ALL_AREAS = [
-    "3D_Viewport",
-    "UV_Editor",
-    "Compositor",
-    "Video_Sequencer",
-    "Movie_Clip_Editor",
-    "Dope_Sheet",
-    "Graph_Editor",
-    "Nonlinear_Animation",
-    "Text_Editor",
-]
 
 
 def get_preferences(context: Context) -> STB_preferences:
@@ -140,7 +129,7 @@ def get_areas(text: str) -> list:
             area_types.append(comment.split("-")[2])
     if len(area_types):
         return area_types
-    return ALL_AREAS
+    return []  # Empty = All Areas
 
 
 AREA_PARSE_DICT = {
@@ -371,7 +360,20 @@ def add_prop(button: STB_button_properties, property) -> bool:
 
 def add_button(context: Context, name: str, textname: str, description: str):
     STB_pref = get_preferences(context)
+    index = context.scene.stb.find(name)
     texts = bpy.data.texts
+    text = texts[textname].as_string()  # Get selected Text
+    if index != -1:
+        context.scene.stb.remove(index)
+    new = context.scene.stb.add()  # Create new Instance
+    new.name = check_for_duplicates(get_all_button_names(context), name)
+    if description != "":
+        new.description = description
+    fails = add_areas_and_props(new, text)
+    if new.panel not in panels.panel_names:
+        panels.register_button_panel(new.panel)
+
+    update_text_header(texts[textname], new)
     text = texts[textname].as_string()  # Get selected Text
     if STB_pref.autosave:
         save_text(texts[textname], name)
@@ -383,17 +385,40 @@ def add_button(context: Context, name: str, textname: str, description: str):
         else:
             texts[textname].clear()
         texts[textname].write(text)  # Write to Text
-    index = context.scene.stb.find(name)
-    if index != -1:
-        context.scene.stb.remove(index)
-    new = context.scene.stb.add()  # Create new Instance
-    new.name = check_for_duplicates(get_all_button_names(context), name)
-    if description != "":
-        new.description = description
-    fails = add_areas_and_props(new, text)
-    if new.panel not in panels.panel_names:
-        panels.register_button_panel(new.panel)
+
     return fails
+
+
+def update_text_header(text: bpy.types.Text, button: STB_button_properties):
+    lines = [line.body for line in text.lines]
+    if len(button.areas):
+        if lines[0].strip().startswith("#STB"):
+            line = ""
+        else:
+            line = ""
+            lines.insert(0, line)
+        line += " /// ".join(
+            map(
+                lambda x: "#STB-Area-%s" % AREA_PARSE_DICT_INVERSE[x.name], button.areas
+            )
+        )
+        lines[0] = line
+
+    if button.description != "":
+        escaped_description = button.description.replace('"', '\\"')
+        if lines[0].strip().startswith("#STB-Area"):
+            line = lines[0]
+            line += " /// "
+        elif lines[0].strip().startswith("#STB-Tooltip"):
+            line = ""
+        else:
+            line = ""
+            lines.insert(0, line)
+        line += f'#STB-Tooltip-"{escaped_description}"'
+        lines[0] = line
+
+    text.clear()
+    text.write("\n".join(lines))
 
 
 def remove_button(context: Context, delete_file: bool, delete_text: bool):
@@ -413,6 +438,9 @@ def remove_button(context: Context, delete_file: bool, delete_text: bool):
     stb.remove(index)
     if index - 1 >= 0:
         stb[index - 1].selected = True
+    else:
+        scene = bpy.context.scene
+        scene["stb_button.selected_name"] = ""
     panel_names = set(button.panel for button in stb)
     for panel in set(panels.panel_names).difference(panel_names):
         panels.unregister_button_panel(panel)
@@ -525,12 +553,6 @@ def add_areas_and_props(button: STB_button_properties, text: str) -> tuple[list,
         if pars is False:
             failed_areas.append(ele)
         else:
-            new = button.areas.add()
-            new.name = pars
-            new.area = pars
-    if len(areas) == len(failed_areas):  # failed to add areas
-        for ele in ALL_AREAS:
-            pars = area_parser(ele)
             new = button.areas.add()
             new.name = pars
             new.area = pars

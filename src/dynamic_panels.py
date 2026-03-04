@@ -45,7 +45,11 @@ def unregister_register_button_panel(name: str, register: bool):
                 area = context.area.ui_type
                 panel = panel_names[self.bl_order]
                 return any(
-                    (button.panel == panel and area in button.areas) for button in stb
+                    (
+                        button.panel == panel
+                        and (len(button.areas) == 0 or area in button.areas)
+                    )
+                    for button in stb
                 )
 
             def draw_header(self, context: Context):
@@ -57,7 +61,10 @@ def unregister_register_button_panel(name: str, register: bool):
                 area = context.area.ui_type
                 panel = panel_names[self.bl_order]
                 buttons = filter(
-                    lambda x: area in x.areas and x.panel == panel, context.scene.stb
+                    lambda x: (
+                        (len(x.areas) == 0 or area in x.areas) and x.panel == panel
+                    ),
+                    context.scene.stb,
                 )
                 for button in sorted(buttons, key=lambda x: x.name):
                     row = layout.row(align=True)
@@ -96,7 +103,11 @@ def unregister_register_button_panel(name: str, register: bool):
             area = context.area.ui_type
             panel = panel_names[self.bl_order]
             return any(
-                (button.panel == panel and area in button.areas) for button in stb
+                (
+                    button.panel == panel
+                    and (len(button.areas) == 0 or area in button.areas)
+                )
+                for button in stb
             )
 
         def draw(self, context: Context):
