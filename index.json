@@ -7,7 +7,7 @@
             "id": "script_to_button",
             "name": "Script To Button",
             "tagline": "Converts scripts to buttons",
-            "version": "2.3.3",
+            "version": "2.3.4",
             "type": "add-on",
             "maintainer": "RivinHD",
             "license": [
@@ -21,9 +21,9 @@
             "tags": [
                 "System"
             ],
-            "archive_url": "https://github.com/RivinHD/ScriptToButton/releases/download/v2.3.3/script_to_button-2.3.3.zip",
-            "archive_size": 85943,
-            "archive_hash": "sha256:e605c1998d20f2bb17b30ea80645548adde61baad58f565f6d396a0a8159d9e6"
+            "archive_url": "https://github.com/RivinHD/ScriptToButton/releases/download/v2.3.4/script_to_button-2.3.4.zip",
+            "archive_size": 87041,
+            "archive_hash": "sha256:8300c540e63420b7f29de2c2cdf04dbc289d16861c5e7d0f32e61f353e154e68"
         }
     ]
 }
